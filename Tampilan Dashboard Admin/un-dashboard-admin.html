@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - SIPRAKTA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --primary-dark: #0b5ed7;
+            --secondary: #6c757d;
+            --success: #198754;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #0dcaf0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --transition: all 0.3s ease;
+            --border-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
+            color: #333;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Layout Utama */
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            height: 100vh;
+            position: fixed;
+            transition: var(--transition);
+            z-index: 1000;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 45px;
+            height: 45px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo i {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            animation: fadeIn 1s ease;
+        }
+
+        .sidebar-menu {
+            padding: 25px 0;
+        }
+
+        .menu-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            font-size: 1.05rem;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-left: 4px solid var(--warning);
+        }
+
+        .menu-item i {
+            width: 24px;
+            text-align: center;
+        }
+
+        .submenu {
+            padding-left: 60px;
+            max-height: 0;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .submenu.open {
+            max-height: 300px;
+        }
+
+        .submenu-item {
+            padding: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .submenu-item:hover {
+            color: var(--warning);
+        }
+
+        .submenu-item::before {
+            content: "•";
+            color: var(--warning);
+            font-size: 1.2rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 25px;
+            transition: var(--transition);
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            animation: slideDown 0.6s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .welcome-section h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .welcome-section p {
+            color: var(--secondary);
+            font-size: 1.05rem;
+            max-width: 600px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(13, 110, 253, 0.08);
+            padding: 10px 20px;
+            border-radius: 50px;
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            background: rgba(13, 110, 253, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--info));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .user-info h4 {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .user-info p {
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+            transition: var(--transition);
+            animation: fadeInUp 0.8s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .dashboard-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: var(--primary);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .card-header h3 {
+            color: var(--dark);
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .card-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .icon-blue {
+            background: linear-gradient(45deg, var(--primary), var(--info));
+        }
+
+        .icon-green {
+            background: linear-gradient(45deg, var(--success), #20c997);
+        }
+
+        .icon-orange {
+            background: linear-gradient(45deg, #fd7e14, var(--warning));
+        }
+
+        .icon-purple {
+            background: linear-gradient(45deg, #6f42c1, #d63384);
+        }
+
+        .icon-red {
+            background: linear-gradient(45deg, var(--danger), #ff6b6b);
+        }
+
+        .icon-teal {
+            background: linear-gradient(45deg, #20c997, #0dcaf0);
+        }
+
+        .icon-indigo {
+            background: linear-gradient(45deg, #6610f2, #6f42c1);
+        }
+
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .card-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 10px;
+            transition: var(--transition);
+            cursor: pointer;
+            background: rgba(245, 247, 250, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        .card-item:hover {
+            background: rgba(13, 110, 253, 0.07);
+            transform: translateX(5px);
+        }
+
+        .card-item i {
+            width: 40px;
+            height: 40px;
+            background: rgba(13, 110, 253, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            margin-right: 15px;
+            transition: var(--transition);
+            font-size: 1.1rem;
+        }
+
+        .card-item:hover i {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .item-content h4 {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .item-content p {
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50px;
+            padding: 5px 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        /* Stats Card */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: var(--transition);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stats-content h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stats-content p {
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Animasi */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            z-index: 1100;
+            background: var(--primary);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            font-size: 1.2rem;
+            transition: var(--transition);
+        }
+
+        .menu-toggle:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid, .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+                padding: 20px;
+            }
+            .user-profile {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h2>SIPRAKTA</h2>
+            </div>
+            <div class="sidebar-menu">
+                <div class="menu-item active">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </div>
+                
+                <div class="menu-item" onclick="toggleSubmenu('pengajuan')">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Pengajuan Sidang</span>
+                    <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
+                </div>
+                <div class="submenu" id="pengajuan">
+                    <div class="submenu-item">Sidang PKL</div>
+                    <div class="submenu-item">Sidang TA</div>
+                    <div class="submenu-item">Dosen</div>
+                </div>
+                
+                <div class="menu-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Mahasiswa</span>
+                </div>
+                
+                <div class="menu-item">
+                    <i class="fas fa-book"></i>
+                    <span>Program Studi</span>
+                </div>
+                
+                <div class="menu-item" onclick="toggleSubmenu('jadwal')">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Jadwal</span>
+                    <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
+                </div>
+                <div class="submenu" id="jadwal">
+                    <div class="submenu-item">Sidang PKL</div>
+                    <div class="submenu-item">Sidang TA</div>
+                </div>
+                
+                <div class="menu-item">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifikasi</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="welcome-section">
+                    <h1>Selamat Datang di SIPRAKTA</h1>
+                    <p>Sistem Informasi Praktek Kerja Lapangan dan Tugas Akhir</p>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">A</div>
+                    <div class="user-info">
+                        <h4>Admin SIPRAKTA</h4>
+                        <p>Administrator</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stats-card" style="animation-delay: 0.1s;">
+                    <div class="stats-icon icon-blue">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3>1,245</h3>
+                        <p>Total Mahasiswa</p>
+                    </div>
+                </div>
+                
+                <div class="stats-card" style="animation-delay: 0.2s;">
+                    <div class="stats-icon icon-green">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3>68</h3>
+                        <p>Total Dosen</p>
+                    </div>
+                </div>
+                
+                <div class="stats-card" style="animation-delay: 0.3s;">
+                    <div class="stats-icon icon-orange">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3>42</h3>
+                        <p>Sidang Mendatang</p>
+                    </div>
+                </div>
+                
+                <div class="stats-card" style="animation-delay: 0.4s;">
+                    <div class="stats-icon icon-red">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3>27</h3>
+                        <p>Pengajuan Baru</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Pengajuan Sidang -->
+                <div class="dashboard-card" style="animation-delay: 0.1s;">
+                    <div class="card-header">
+                        <h3>Pengajuan Sidang</h3>
+                        <div class="card-icon icon-blue">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-item">
+                            <i class="fas fa-user-tie"></i>
+                            <div class="item-content">
+                                <h4>Dosen</h4>
+                                <p>Pengelolaan data dosen</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-users"></i>
+                            <div class="item-content">
+                                <h4>Mahasiswa</h4>
+                                <p>Data pengajuan mahasiswa</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Program Studi -->
+                <div class="dashboard-card" style="animation-delay: 0.2s;">
+                    <div class="card-header">
+                        <h3>Program Studi</h3>
+                        <div class="card-icon icon-green">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-item">
+                            <i class="fas fa-calendar-check"></i>
+                            <div class="item-content">
+                                <h4>Jadwal Sidang</h4>
+                                <p>Atur jadwal sidang prodi</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-bell"></i>
+                            <div class="item-content">
+                                <h4>Notifikasi</h4>
+                                <p>Kirim notifikasi ke mahasiswa</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notifikasi -->
+                <div class="dashboard-card" style="animation-delay: 0.3s;">
+                    <div class="card-header">
+                        <h3>Notifikasi</h3>
+                        <div class="card-icon icon-red">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                    </div>
+                    <div class="notification-badge">5 Baru</div>
+                    <div class="card-content">
+                        <div class="card-item">
+                            <i class="fas fa-envelope"></i>
+                            <div class="item-content">
+                                <h4>Pesan Belum Dibaca</h4>
+                                <p>3 pesan memerlukan perhatian</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-bullhorn"></i>
+                            <div class="item-content">
+                                <h4>Pengumuman</h4>
+                                <p>Kirim pengumuman ke semua user</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-history"></i>
+                            <div class="item-content">
+                                <h4>Riwayat Notifikasi</h4>
+                                <p>Lihat semua notifikasi terkirim</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Jadwal Sidang -->
+                <div class="dashboard-card" style="animation-delay: 0.4s;">
+                    <div class="card-header">
+                        <h3>Jadwal Sidang</h3>
+                        <div class="card-icon icon-teal">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-item">
+                            <i class="fas fa-plus-circle"></i>
+                            <div class="item-content">
+                                <h4>Buat Jadwal Baru</h4>
+                                <p>Tambahkan jadwal sidang baru</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-search"></i>
+                            <div class="item-content">
+                                <h4>Cari Jadwal</h4>
+                                <p>Cari berdasarkan prodi atau tanggal</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-sync"></i>
+                            <div class="item-content">
+                                <h4>Perbarui Jadwal</h4>
+                                <p>Ubah jadwal yang sudah ada</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dosen -->
+                <div class="dashboard-card" style="animation-delay: 0.5s;">
+                    <div class="card-header">
+                        <h3>Dosen</h3>
+                        <div class="card-icon icon-indigo">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-item">
+                            <i class="fas fa-user-plus"></i>
+                            <div class="item-content">
+                                <h4>Tambah Dosen</h4>
+                                <p>Tambahkan dosen baru ke sistem</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-list"></i>
+                            <div class="item-content">
+                                <h4>Daftar Dosen</h4>
+                                <p>Lihat semua dosen terdaftar</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-chart-bar"></i>
+                            <div class="item-content">
+                                <h4>Statistik Dosen</h4>
+                                <p>Lihat statistik aktivitas dosen</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mahasiswa -->
+                <div class="dashboard-card" style="animation-delay: 0.6s;">
+                    <div class="card-header">
+                        <h3>Mahasiswa</h3>
+                        <div class="card-icon icon-purple">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-item">
+                            <i class="fas fa-user-plus"></i>
+                            <div class="item-content">
+                                <h4>Tambah Mahasiswa</h4>
+                                <p>Tambahkan mahasiswa baru</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-search"></i>
+                            <div class="item-content">
+                                <h4>Cari Mahasiswa</h4>
+                                <p>Cari berdasarkan NIM atau nama</p>
+                            </div>
+                        </div>
+                        <div class="card-item">
+                            <i class="fas fa-chart-line"></i>
+                            <div class="item-content">
+                                <h4>Statistik Mahasiswa</h4>
+                                <p>Lihat statistik kelulusan</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <div class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <script>
+        // Toggle submenu
+        function toggleSubmenu(id) {
+            const submenu = document.getElementById(id);
+            submenu.classList.toggle('open');
+        }
+
+        // Toggle sidebar on mobile
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        });
+
+        // Animate cards on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.dashboard-card, .stats-card');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = 'fadeInUp 0.8s ease forwards';
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            cards.forEach(card => {
+                observer.observe(card);
+            });
+            
+            // Add hover effect to all card items
+            const cardItems = document.querySelectorAll('.card-item');
+            cardItems.forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateX(8px)';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateX(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

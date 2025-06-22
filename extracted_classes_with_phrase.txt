@@ -1,0 +1,4070 @@
+// --- Konten dari Direktori: app/Http/Controllers ---
+// FILE: app/Http/Controllers/AdminController.php
+AdminController{
+    public function pilihJenisPengajuanSidang()
+        {
+            return view('admin.pengajuan.sidang.pilih-jenis');
+        }
+    
+        // New method to list TA submissions
+        public function daftarPengajuanTa()
+        {
+            $pengajuans = Pengajuan::with('mahasiswa')
+                          ->where('jenis_pengajuan', 'ta')
+                          ->orderBy('created_at', 'desc')
+                          ->paginate(10);
+            return view('admin.pengajuan.sidang.ta', compact('pengajuans'));
+        }
+    
+        // New method to list PKL submissions
+        public function daftarPengajuanPkl()
+        {
+            $pengajuans = Pengajuan::with('mahasiswa')
+                          ->where('jenis_pengajuan', 'pkl')
+                          ->orderBy('created_at', 'desc')
+                          ->paginate(10);
+            return view('admin.pengajuan.sidang.pkl', compact('pengajuans'));
+        }
+    
+        // ... existing Pengajuan Methods (setujuiPengajuan, tolakPengajuan, detailPengajuan)
+        // You might want to adjust detailPengajuan to be more generic if it's used for both types,
+        // or create specific detail methods if the logic differs significantly.
+        public function detailPengajuan(Pengajuan $pengajuan)
+        {
+            $dokumens = Dokumen::where('pengajuan_id', $pengajuan->id)->get();
+            return view('admin.pengajuan.show', compact('pengajuan', 'dokumens'));
+        }
+    
+        public function setujuiPengajuan(Pengajuan $pengajuan)
+        {
+            $pengajuan->update(['status' => 'diverifikasi_admin']); // Changed status to 'diverifikasi_admin' as per your existing code 
+            return back()->with('success', 'Pengajuan berhasil disetujui.');
+        }
+    
+        public function tolakPengajuan(Pengajuan $pengajuan)
+        {
+            $pengajuan->update(['status' => 'ditolak_admin']); // Changed status to 'ditolak_admin' as per your existing code 
+            return back()->with('error', 'Pengajuan berhasil ditolak.');
+        }
+    
+        public function loginForm()
+        {
+            return view('admin.login');
+        }
+    
+        public function login(Request $request)
+        {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+    
+            $credentials = $request->only('email', 'password');
+            $credentials['role'] = 'admin'; // Tambahkan role ke credentials
+    
+            if (Auth::attempt($credentials)) {
+                $request->session()->regenerate();
+    
+                return redirect()->intended(route('admin.dashboard'));
+            }
+    
+            return back()->withErrors([
+                'email' => 'Email atau password salah.',
+            ]);
+        }
+    
+        public function dashboard()
+        {
+            return view('admin.dashboard');
+        }
+    
+        public function logout(Request $request)
+        {
+            Auth::logout();
+    
+            $request->session()->invalidate();
+    
+            $request->session()->regenerateToken();
+    
+            return redirect('/'); // Redirect ke halaman utama atau halaman lain setelah logout
+        }
+    
+        // Dibawah ini untuk CRUD mahasiswa
+        public function daftarMahasiswa(Request $request){
+            $mahasiswas = Mahasiswa::query(); // Start with a query builder
+    
+            // Sorting
+            if ($request->has('sort_by') && $request->has('sort_order')) {
+                $sortBy = $request->input('sort_by');
+                $sortOrder = $request->input('sort_order');
+    
+                if (in_array($sortBy, ['kelas', 'jenis_kelamin'])) {
+                    $mahasiswas->orderBy($sortBy, $sortOrder);
+                }
+            }
+    
+            $mahasiswas = $mahasiswas->get(); // Get the results
+    
+            return view('admin.mahasiswa.index', compact('mahasiswas'));
+        }
+    
+        public function detailMahasiswa(Mahasiswa $mahasiswa)
+        {
+            return view('admin.mahasiswa.show', compact('mahasiswa'));
+        }
+    
+        public function createMahasiswa()
+        {
+            return view('admin.mahasiswa.create');
+        }
+    
+        /*public function storeMahasiswa(Request $request)
+        {
+            $request->validate([
+                'nim' => 'required|unique:mahasiswas',
+                'nama_lengkap' => 'required',
+                'jurusan' => 'required',
+                'prodi' => 'required',
+                'jenis_kelamin' => 'required',
+                'kelas' => 'required',
+            ]);
+    
+            Mahasiswa::create($request->all());
+    
+            logActivity('Membuat mahasiswa baru: ' . $request->nama_lengkap, 'Mahasiswa');
+    
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil ditambahkan.');
+        }>*/
+    
+        public function storeMahasiswa(Request $request)
+        {
+            // Pastikan Anda memiliki Validator facade di-import: use Illuminate\Support\Facades\Validator;
+            $validator = Validator::make($request->all(), [
+                'nim' => 'required|unique:mahasiswas',
+                'nama_lengkap' => 'required',
+                'jurusan' => 'required',
+                'prodi' => 'required',
+                'jenis_kelamin' => 'required',
+                'kelas' => 'required',
+                'email' => 'required|email|unique:users', // Validasi email untuk user
+                'password' => 'required|min:8', // Validasi password untuk user
+            ]);
+    
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+    
+            // Buat user baru terlebih dahulu
+            $user = User::create([
+                'name' => $request->nama_lengkap, // Gunakan nama lengkap mahasiswa sebagai nama user
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'mahasiswa', // Tetapkan role 'mahasiswa'
+            ]);
+    
+            // Buat data mahasiswa dan kaitkan dengan user_id yang baru dibuat
+            Mahasiswa::create([
+                'user_id' => $user->id, // Penting: kaitkan dengan ID user yang baru dibuat
+                'nim' => $request->nim,
+                'nama_lengkap' => $request->nama_lengkap,
+                'jurusan' => $request->jurusan,
+                'prodi' => $request->prodi,
+                'email' =>$request->email,
+                'jenis_kelamin' => $request->jenis_kelamin,
+                'kelas' => $request->kelas,
+            ]);
+    
+            logActivity('Membuat mahasiswa baru: ' . $request->nama_lengkap, 'Mahasiswa');
+    
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil ditambahkan!');
+        }
+    
+        public function editMahasiswa(Mahasiswa $mahasiswa)
+        {
+            return view('admin.mahasiswa.edit', compact('mahasiswa'));
+        }
+    
+        public function updateMahasiswa(Request $request, Mahasiswa $mahasiswa)
+        {
+            $request->validate([
+                'nim' => 'required|unique:mahasiswas,nim,' . $mahasiswa->id,
+                'nama_lengkap' => 'required',
+                'jurusan' => 'required',
+                'prodi' => 'required',
+                'jenis_kelamin' => 'required',
+                'kelas' => 'required',
+            ]);
+    
+            $mahasiswa->update($request->all());
+    
+            logActivity('Mengupdate mahasiswa: ' . $mahasiswa->nama_lengkap, 'Mahasiswa');
+    
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil diupdate.');
+        }
+    
+        public function destroyMahasiswa(Mahasiswa $mahasiswa)
+        {
+            $mahasiswa->delete();
+    
+            logActivity('Menghapus mahasiswa: ' . $mahasiswa->nama_lengkap, 'Mahasiswa');
+    
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil dihapus.');
+        }
+    
+        // Dibawah ini untuk dosen Methods
+        public function daftarDosen()
+        {
+            $dosens = Dosen::all();
+            return view('admin.dosen.index', compact('dosens'));
+        }
+    
+        public function detailDosen(Dosen $dosen)
+        {
+            return view('admin.dosen.show', compact('dosen'));
+        }
+    
+        public function createDosen()
+        {
+            return view('admin.dosen.create');
+        }
+    
+        public function storeDosen(Request $request)
+        {
+            $validator = Validator::make($request->all(), [
+                'nidn' => 'required|unique:dosens',
+                'nama' => 'required',
+                'jurusan' => 'required',
+                'prodi' => 'required',
+                'email' => 'required|email|unique:users',
+                'password' => 'required|min:8',
+            ]);
+    
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+    
+            $user = User::create([
+                'name' => $request->nama,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'dosen',
+            ]);
+    
+            Dosen::create([
+                'user_id' => $user->id,
+                'nidn' => $request->nidn,
+                'nama' => $request->nama,
+                'jurusan' => $request->jurusan,
+                'prodi' => $request->prodi,
+                'jenis_kelamin' => $request->jenis_kelamin,
+                'password' => $request->password,
+    
+            ]);
+    
+            // logActivity('Membuat dosen baru: ' . $request->nama, 'Dosen'); // Jika Anda menggunakan logActivity
+            return redirect()->route('admin.dosen.index')->with('success', 'Dosen berhasil ditambahkan!');
+        }
+    
+        public function editDosen(Dosen $dosen)
+        {
+            return view('admin.dosen.edit', compact('dosen'));
+        }
+    
+        public function updateDosen(Request $request, Dosen $dosen)
+        {
+            $request->validate([
+                'nidn' => 'required|unique:dosens,nidn,' . $dosen->id,
+                'nama_lengkap' => 'required',
+                'jenis_kelamin' => 'required',
+            ]);
+    
+            $dosen->update($request->all());
+    
+            return redirect()->route('admin.dosen.index')->with('success', 'Dosen berhasil diupdate.');
+        }
+    
+        public function destroyDosen(Dosen $dosen)
+        {
+            $dosen->delete();
+    
+            return redirect()->route('admin.dosen.index')->with('success', 'Dosen berhasil dihapus.');
+        }
+    
+        public function importDosenForm()
+        {
+            return view('admin.dosen.import');
+        }
+    
+        public function importDosen(Request $request)
+        {
+            $request->validate([
+                'file' => 'required|mimes:xlsx,xls',
+            ]);
+    
+            Excel::import(new DosenImport, $request->file('file'));
+    
+            return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil diimport.');
+        }
+    
+        // Dibawah ini Pengajuan Sidang Methods
+        public function daftarPengajuan()
+        {
+            //$pengajuans = Pengajuan::with('mahasiswa')->get(); // Eager load data mahasiswa
+            $pengajuans = Pengajuan::with('mahasiswa') // Eager load relasi mahasiswa jika digunakan di view
+                ->orderBy('created_at', 'desc') // Urutkan berdasarkan tanggal terbaru
+                ->paginate(10); // Ambil 10 pengajuan per halaman. Sesuaikan jumlah ini.
+    
+            return view('admin.pengajuan.index', compact('pengajuans'));
+        }
+    
+        // Dibawah ini Persidangan Methods
+        public function daftarSidang()
+        {
+            $sidangs = Sidang::with('pengajuan.mahasiswa')->get(); // Eager load data
+            return view('admin.sidang.index', compact('sidangs'));
+        }
+    
+        public function kalenderSidang()
+        {
+            $sidangs = Sidang::with('pengajuan.mahasiswa')->get();
+            $events = [];
+    
+            foreach ($sidangs as $sidang) {
+                if ($sidang->tanggal_sidang) {
+                    $events[] = [
+                        'title' => 'Sidang ' . $sidang->pengajuan->mahasiswa->nama_lengkap,
+                        'start' => $sidang->tanggal_sidang,
+                        // Tambahkan data lain yang ingin ditampilkan di kalender
+                    ];
+                }
+            }
+    
+            return view('admin.sidang.kalender', compact('events'));
+        }
+    
+        public function detailSidang(Sidang $sidang)
+        {
+            return view('admin.sidang.show', compact('sidang'));
+        }
+    
+        // Method untuk menampilkan nilai dan hasil (jika diperlukan terpisah)
+        // public function nilaiSidang(Sidang $sidang) { ... }
+        // public function hasilSidang(Sidang $sidang) { ... }
+    
+        // Dibawah ini import mahasiswa method
+        public function importMahasiswaForm()
+        {
+            return view('admin.mahasiswa.import');
+        }
+    
+        public function importMahasiswa(Request $request)
+        {
+            $request->validate([
+                'file' => 'required|mimes:xlsx,xls',
+            ]);
+    
+            Excel::import(new MahasiswaImport, $request->file('file'));
+    
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diimport.');
+        }
+    
+        // Dibawah ini export (mahasiswa, Dosen, Sidang) method
+        public function exportMahasiswa()
+        {
+            return Excel::download(new MahasiswasExport, 'data_mahasiswa.xlsx');
+        }
+    
+        public function exportDosen()
+        {
+            return Excel::download(new DosensExport, 'data_dosen.xlsx');
+        }
+    
+        public function exportSidang()
+        {
+            return Excel::download(new SidangsExport, 'data_persidangan.xlsx');
+        }
+    
+        // Dibawah ini Untuk Log aktivitas
+        public function showActivities()
+        {
+            $activities = Activity::with('user')->latest()->paginate(10); // Ambil log, urutkan terbaru, paginasi
+            return view('admin.activities.index', compact('activities'));
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/AuthController.php
+AuthController{
+    public function showRegistrationFormMahasiswa()
+        {
+            return view('auth.register-mahasiswa');
+        }
+    
+        public function registerMahasiswa(Request $request)
+        {
+            $validator = Validator::make($request->all(), [
+                'nim' => 'required|unique:mahasiswas',
+                'nama_lengkap' => 'required',
+                'jurusan' => 'required',
+                'prodi' => 'required',
+                'jenis_kelamin' => 'required',
+                'kelas' => 'required',
+                'email' => 'required|email|unique:users',
+                'password' => 'required|min:8|confirmed',
+            ]);
+    
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+    
+            $user = User::create([
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'mahasiswa',
+            ]);
+    
+            Mahasiswa::create([
+                'user_id' => $user->id,
+                'nim' => $request->nim,
+                'nama_lengkap' => $request->nama_lengkap,
+                'jurusan' => $request->jurusan,
+                'prodi' => $request->prodi,
+                'jenis_kelamin' => $request->jenis_kelamin,
+                'kelas' => $request->kelas,
+            ]);
+    
+            Auth::login($user);
+    
+            return redirect('/mahasiswa/dashboard');
+        }
+    
+        public function login(Request $request)
+        {
+            $credentials = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => 'required',
+            ]);
+    
+            if (Auth::attempt($credentials)) {
+                $request->session()->regenerate();
+    
+                $user = Auth::user();
+    
+                if ($user->role == 'admin') {
+                    return redirect()->intended('/admin/dashboard');
+                } elseif ($user->role == 'dosen') {
+                    return redirect()->intended('/dosen/dashboard');
+                } elseif ($user->role == 'mahasiswa') {
+                    return redirect()->intended('/mahasiswa/dashboard');
+                }
+    
+                return redirect()->intended('/dashboard'); // Default redirect
+            }
+    
+            return back()->withErrors([
+                'email' => 'Email atau password salah.',
+            ])->onlyInput('email');
+        }
+    
+        public function showLoginForm()
+        {
+            return view('auth.login'); // Pastikan view ini ada
+        }
+    
+        public function logout(Request $request)
+        {
+            Auth::logout();
+    
+            $request->session()->invalidate();
+    
+            $request->session()->regenerateToken();
+    
+            return redirect('/');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/Controller.php
+Controller{
+    //
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/DokumenController.php
+DokumenController{
+    // Helper untuk mendapatkan objek Mahasiswa dari user yang login
+        private function getLoggedInMahasiswa()
+        {
+            return Mahasiswa::where('user_id', Auth::id())->firstOrFail();
+        }
+    
+        public function index(Pengajuan $pengajuan)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            // Pastikan mahasiswa yang melihat adalah pemilik pengajuan
+            if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
+                abort(403, 'Anda tidak diizinkan mengakses dokumen ini.');
+            }
+    
+            $dokumenTerupload = Dokumen::where('pengajuan_id', $pengajuan->id)->get();
+    
+            return view('mahasiswa.dokumen.index', compact('pengajuan', 'dokumenTerupload'));
+        }
+    
+        // Metode store dan update di DokumenController dapat dihapus atau disesuaikan
+        // jika Anda ingin memungkinkan update/hapus dokumen individual secara terpisah dari pengajuan.
+        // Namun, untuk alur pengajuan dokumen persyaratan, PengajuanController sudah cukup.
+    
+        // Contoh: Jika Anda ingin mahasiswa bisa menghapus dokumen satu per satu
+        public function destroy(Dokumen $dokumen)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            // Pastikan dokumen milik mahasiswa yang login dan pengajuan masih dalam status draft/ditolak
+            if ($dokumen->pengajuan->mahasiswa_id !== $mahasiswa->id ||
+                !in_array($dokumen->pengajuan->status, ['draft', 'ditolak_admin', 'ditolak_kaprodi'])) {
+                abort(403, 'Anda tidak diizinkan menghapus dokumen ini.');
+            }
+    
+            Storage::disk('public')->delete($dokumen->path_file);
+            $dokumen->delete();
+    
+            return back()->with('success', 'Dokumen berhasil dihapus.');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/DosenController.php
+DosenController{
+    public function loginForm()
+        {
+            return view('dosen.login');
+        }
+    
+        public function login(Request $request)
+        {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+    
+            $credentials = $request->only('email', 'password');
+            $credentials['role'] = 'dosen';
+    
+            if (Auth::attempt($credentials)) {
+                $request->session()->regenerate();
+    
+                return redirect()->intended(route('dosen.dashboard'));
+            }
+    
+            return back()->withErrors([
+                'email' => 'Email atau password salah.',
+            ]);
+        }
+    
+        public function dashboard()
+        {
+            $user = Auth::user();
+            $dosen = $user->dosen;
+    
+            if (!$dosen) {
+                Auth::logout();
+                return redirect()->route('dosen.login')->with('error', 'Profil dosen tidak ditemukan.');
+            }
+    
+            $dosenLoginId = $dosen->id;
+    
+            $unreadNotifications = $user->unreadNotifications;
+    
+            // Ambil sidang di mana dosen ini terlibat dan statusnya masih 'pending'
+            $sidangInvitations = Sidang::where(function($query) use ($dosenLoginId) {
+                                    $query->where('ketua_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_ketua_sidang', 'pending');
+                                })->orWhere(function($query) use ($dosenLoginId) {
+                                    $query->where('sekretaris_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_sekretaris_sidang', 'pending');
+                                })->orWhere(function($query) use ($dosenLoginId) {
+                                    $query->where('anggota1_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_anggota1_sidang', 'pending');
+                                })->orWhere(function($query) use ($dosenLoginId) {
+                                    $query->where('anggota2_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_anggota2_sidang', 'pending');
+                                })->orWhere(function($query) use ($dosenLoginId) {
+                                    $query->where('dosen_pembimbing_id', $dosenLoginId)
+                                          ->where('persetujuan_dosen_pembimbing', 'pending');
+                                })->orWhere(function($query) use ($dosenLoginId) {
+                                    $query->where('dosen_penguji1_id', $dosenLoginId)
+                                          ->where('persetujuan_dosen_penguji1', 'pending');
+                                })
+                                ->with([
+                                    'pengajuan.mahasiswa',
+                                    'ketuaSidang',
+                                    'sekretarisSidang',
+                                    'anggota1Sidang',
+                                    'anggota2Sidang',
+                                    'dosenPembimbing',
+                                    'dosenPenguji1'
+                                ])
+                                ->get();
+    
+            // --- CORRECTED QUERIES FOR APPROVED AND REJECTED SIDANGS ---
+            // Helper function to check if a specific role for the logged-in dosen is 'setuju' or 'tolak'
+            $getSidangsByResponse = function($responseType) use ($dosenLoginId) {
+                return Sidang::where(function($query) use ($dosenLoginId, $responseType) {
+                                    // Check each role specifically for the logged-in dosen and the desired responseType
+                                    $query->where(function($q) use ($dosenLoginId, $responseType) {
+                                        $q->where('ketua_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_ketua_sidang', $responseType);
+                                    })
+                                    ->orWhere(function($q) use ($dosenLoginId, $responseType) {
+                                        $q->where('sekretaris_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_sekretaris_sidang', $responseType);
+                                    })
+                                    ->orWhere(function($q) use ($dosenLoginId, $responseType) {
+                                        $q->where('anggota1_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_anggota1_sidang', $responseType);
+                                    })
+                                    ->orWhere(function($q) use ($dosenLoginId, $responseType) {
+                                        $q->where('anggota2_sidang_dosen_id', $dosenLoginId)
+                                          ->where('persetujuan_anggota2_sidang', $responseType);
+                                    })
+                                    ->orWhere(function($q) use ($dosenLoginId, $responseType) {
+                                        $q->where('dosen_pembimbing_id', $dosenLoginId)
+                                          ->where('persetujuan_dosen_pembimbing', $responseType);
+                                    })
+                                    ->orWhere(function($q) use ($dosenLoginId, $responseType) {
+                                        $q->where('dosen_penguji1_id', $dosenLoginId)
+                                          ->where('persetujuan_dosen_penguji1', $responseType);
+                                    });
+                                })
+                                ->with([
+                                    'pengajuan.mahasiswa',
+                                    'ketuaSidang',
+                                    'sekretarisSidang',
+                                    'anggota1Sidang',
+                                    'anggota2Sidang',
+                                    'dosenPembimbing',
+                                    'dosenPenguji1'
+                                ])
+                                ->get();
+            };
+    
+            $approvedSidangs = $getSidangsByResponse('setuju');
+            $rejectedSidangs = $getSidangsByResponse('tolak');
+            // --- END CORRECTED QUERIES ---
+    
+            return view('dosen.dashboard', compact('unreadNotifications', 'sidangInvitations', 'approvedSidangs', 'rejectedSidangs'));
+        }
+        public function logout(Request $request)
+        {
+            Auth::logout();
+    
+            $request->session()->invalidate();
+    
+            $request->session()->regenerateToken();
+    
+            return redirect('/');
+        }
+    
+        public function daftarPengajuan()
+        {
+            $pengajuans = Pengajuan::with([
+                'mahasiswa',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang'
+            ])->get();
+    
+            return view('dosen.pengajuan.index', compact('pengajuans'));
+        }
+    
+        public function detailPengajuan(Pengajuan $pengajuan)
+        {
+            $pengajuan->load([
+                'mahasiswa',
+                'dokumens',
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang',
+            ]);
+    
+            return view('dosen.pengajuan.show', compact('pengajuan'));
+        }
+    
+        // Method untuk menandai notifikasi sudah dibaca
+        public function markNotificationAsRead(DatabaseNotification $notification)
+        {
+            if (Auth::id() !== $notification->notifiable_id) {
+                abort(403, 'Unauthorized action.');
+            }
+            $notification->markAsRead();
+            return back()->with('success', 'Notifikasi ditandai sudah dibaca.');
+        }
+    
+        protected function checkAndSetPengajuanStatus(Sidang $sidang)
+        {
+            $allDosenResponded = true;
+            $allDosenAgreed = true;
+    
+            $rolesToCheck = [
+                'ketua_sidang' => $sidang->ketua_sidang_dosen_id,
+                'sekretaris_sidang' => $sidang->sekretaris_sidang_dosen_id,
+                'anggota1_sidang' => $sidang->anggota1_sidang_dosen_id,
+                'anggota2_sidang' => $sidang->anggota2_sidang_dosen_id, // ini bisa null
+                'dosen_pembimbing' => $sidang->dosen_pembimbing_id,
+                'dosen_penguji1' => $sidang->dosen_penguji1_id, // pembimbing 2
+            ];
+    
+            foreach ($rolesToCheck as $role => $dosenId) {
+                if ($dosenId !== null) { // Hanya cek jika peran dosen ini diisi
+                    $persetujuanKolom = 'persetujuan_' . $role;
+                    if ($sidang->$persetujuanKolom === 'pending') {
+                        $allDosenResponded = false;
+                        break;
+                    }
+                    if ($sidang->$persetujuanKolom === 'tolak') {
+                        $allDosenAgreed = false;
+                        break;
+                    }
+                }
+            }
+    
+            if ($allDosenResponded) {
+                if ($allDosenAgreed) {
+                    $sidang->pengajuan->update(['status' => 'dosen_menyetujui']);
+                } else {
+                    $sidang->pengajuan->update(['status' => 'dosen_menolak_jadwal']);
+                }
+            }
+        }
+    
+        public function pengajuanSaya()
+        {
+            $user = Auth::user();
+    
+            if (!$user || !$user->dosen) {
+                return redirect()->route('dosen.dashboard')->with('error', 'Akses ditolak. Anda tidak terdaftar sebagai dosen.');
+            }
+    
+            $dosenId = Auth::user()->dosen->id;
+    
+            $pengajuansInvolved = Pengajuan::whereHas('sidang', function ($query) use ($dosenId) {
+                $query->where('dosen_pembimbing_id', $dosenId)
+                      ->orWhere('dosen_penguji1_id', $dosenId)
+                      ->orWhere('dosen_penguji2_id', $dosenId)
+                      ->orWhere('ketua_sidang_dosen_id', $dosenId)
+                      ->orWhere('sekretaris_sidang_dosen_id', $dosenId)
+                      ->orWhere('anggota1_sidang_dosen_id', $dosenId)
+                      ->orWhere('anggota2_sidang_dosen_id', $dosenId);
+            })
+            ->with([
+                'mahasiswa',
+                'sidang.dosenPembimbing',
+                'sidang.dosenPenguji1',
+                'sidang.dosenPenguji2',
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang'
+            ])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+    
+            return view('dosen.pengajuan.pengajuan_saya', compact('pengajuansInvolved'));
+        }
+    
+        public function setujuiDokumen(Dokumen $dokumen)
+        {
+            $dokumen->update(['status' => 'disetujui']);
+            return redirect()->back()->with('success', 'Dokumen berhasil disetujui.');
+        }
+    
+        public function tolakDokumen(Dokumen $dokumen)
+        {
+            $dokumen->update(['status' => 'ditolak']);
+            return redirect()->back()->with('success', 'Dokumen berhasil ditolak.');
+        }
+    
+        public function formJadwalSidang(Pengajuan $pengajuan)
+        {
+            return view('dosen.jadwal.create', compact('pengajuan'));
+        }
+    
+        public function simpanJadwalSidang(Request $request, Pengajuan $pengajuan)
+        {
+            $request->validate([
+                'tanggal_waktu_sidang' => 'required|date',
+                'ruangan_sidang' => 'required|string|max:255',
+            ]);
+    
+            $sidang = $pengajuan->sidang ?? new Sidang();
+            $sidang->pengajuan_id = $pengajuan->id;
+            $sidang->tanggal_waktu_sidang = $request->tanggal_waktu_sidang;
+            $sidang->ruangan_sidang = $request->ruangan_sidang;
+            $sidang->save();
+    
+            return redirect()->route('dosen.pengajuan.show', $pengajuan->id)->with('success', 'Jadwal sidang berhasil dibuat.');
+        }
+    
+        public function detailJadwalSidang(Sidang $sidang)
+        {
+            $sidang->load([
+                'pengajuan.mahasiswa',
+                'ketuaSidang',
+                'sekretarisSidang',
+                'anggota1Sidang',
+                'anggota2Sidang',
+                'dosenPembimbing',
+                'dosenPenguji1',
+                'dosenPenguji2'
+            ]);
+    
+            return view('dosen.jadwal.show', compact('sidang'));
+        }
+    
+        public function unduhLaporan(Sidang $sidang)
+        {
+            $laporan = Dokumen::where('pengajuan_id', $sidang->pengajuan_id)
+                              ->where('jenis_dokumen', 'Laporan TA')
+                              ->first();
+    
+            if (!$laporan || !Storage::exists($laporan->path_file)) {
+                abort(404, 'Laporan Tugas Akhir tidak ditemukan atau file tidak ada.');
+            }
+    
+            return Storage::download($laporan->path_file, $laporan->nama_file);
+        }
+    
+        public function formNilaiSidang(Sidang $sidang)
+        {
+            $dosenId = Auth::user()->dosen->id;
+            if (!in_array($dosenId, [
+                $sidang->dosen_pembimbing_id,
+                $sidang->dosen_penguji1_id,
+                $sidang->dosen_penguji2_id
+            ])) {
+                abort(403, 'Anda tidak berhak memberikan nilai pada sidang ini.');
+            }
+    
+            return view('dosen.sidang.nilai.edit', compact('sidang'));
+        }
+    
+        public function simpanNilaiSidang(Request $request, Sidang $sidang)
+        {
+            $request->validate([
+                'nilai_sidang' => 'required|numeric|min:0|max:100',
+                'catatan_sidang' => 'nullable|string',
+            ]);
+    
+            $sidang->update([
+                'nilai_sidang' => $request->nilai_sidang,
+                'catatan_sidang' => $request->catatan_sidang,
+                'hasil_sidang' => ($request->nilai_sidang >= 60) ? 'Lulus' : 'Tidak Lulus',
+            ]);
+    
+            return redirect()->route('dosen.sidang.nilai.edit', $sidang->id)->with('success', 'Nilai sidang berhasil disimpan.');
+        }
+    
+        public function importForm()
+        {
+            return view('admin.dosen.import');
+        }
+    
+        public function import(Request $request)
+        {
+            $request->validate([
+                'file' => 'required|mimes:xls,xlsx,csv|max:2048',
+            ]);
+    
+            try {
+                Excel::import(new DosenImport, $request->file('file'));
+                return redirect()->back()->with('success', 'Data dosen berhasil diimpor!');
+            } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+                $failures = $e->failures();
+                $errors = [];
+                foreach ($failures as $failure) {
+                    $errors[] = 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors());
+                }
+                return redirect()->back()->with('error', 'Gagal mengimpor data dosen. Ada kesalahan validasi: ' . implode('; ', $errors));
+            } catch (\Exception $e) {
+                return redirect()->back()->with('error', 'Terjadi kesalahan saat mengimpor data dosen: ' . $e->getMessage());
+            }
+        }
+    
+        public function formResponSidang(Sidang $sidang)
+        {
+            $dosen = Auth::user()->dosen;
+            $dosenLoginId = $dosen->id;
+    
+            // Determine if the logged-in dosen is involved and still has a pending response
+            $isPending = false;
+            if ($sidang->ketua_sidang_dosen_id === $dosenLoginId && $sidang->persetujuan_ketua_sidang === 'pending') $isPending = true;
+            if ($sidang->sekretaris_sidang_dosen_id === $dosenLoginId && $sidang->persetujuan_sekretaris_sidang === 'pending') $isPending = true;
+            if ($sidang->anggota1_sidang_dosen_id === $dosenLoginId && $sidang->persetujuan_anggota1_sidang === 'pending') $isPending = true;
+            if ($sidang->anggota2_sidang_dosen_id === $dosenLoginId && $sidang->persetujuan_anggota2_sidang === 'pending') $isPending = true;
+            if ($sidang->dosen_pembimbing_id === $dosenLoginId && $sidang->persetujuan_dosen_pembimbing === 'pending') $isPending = true;
+            if ($sidang->dosen_penguji1_id === $dosenLoginId && $sidang->persetujuan_dosen_penguji1 === 'pending') $isPending = true;
+    
+    
+            if ($isPending) {
+                $sidang->load('pengajuan.mahasiswa', 'ketuaSidang', 'sekretarisSidang', 'anggota1Sidang', 'anggota2Sidang', 'dosenPembimbing', 'dosenPenguji1');
+                return view('dosen.respon_sidang', compact('sidang', 'dosen'));
+            }
+    
+            // If dosen is not involved with a pending response, they are redirected.
+            // We can optionally check if they were involved at all to give a more specific message.
+            $wasInvolved = false;
+            if (
+                $sidang->ketua_sidang_dosen_id === $dosenLoginId ||
+                $sidang->sekretaris_sidang_dosen_id === $dosenLoginId ||
+                $sidang->anggota1_sidang_dosen_id === $dosenLoginId ||
+                $sidang->anggota2_sidang_dosen_id === $dosenLoginId ||
+                $sidang->dosen_pembimbing_id === $dosenLoginId ||
+                $sidang->dosen_penguji1_id === $dosenLoginId
+            ) {
+                $wasInvolved = true;
+            }
+    
+            if ($wasInvolved) {
+                 return redirect()->route('dosen.dashboard')->with('info', 'Anda sudah merespon undangan sidang ini.');
+            } else {
+                 return redirect()->route('dosen.dashboard')->with('error', 'Anda tidak memiliki akses ke undangan sidang ini.');
+            }
+        }
+    
+        public function submitResponSidang(Request $request, Sidang $sidang)
+        {
+            $request->validate([
+                'respon' => 'required|in:setuju,tolak',
+                'catatan' => 'nullable|string|max:500',
+            ]);
+    
+            $dosen = Auth::user()->dosen;
+            $respon = $request->respon;
+            $catatan = $request->catatan;
+            $peranDosen = null;
+    
+            if ($sidang->ketua_sidang_dosen_id === $dosen->id && $sidang->persetujuan_ketua_sidang === 'pending') {
+                $sidang->persetujuan_ketua_sidang = $respon;
+                $peranDosen = 'Ketua Sidang';
+            } elseif ($sidang->sekretaris_sidang_dosen_id === $dosen->id && $sidang->persetujuan_sekretaris_sidang === 'pending') {
+                $sidang->persetujuan_sekretaris_sidang = $respon;
+                $peranDosen = 'Sekretaris Sidang';
+            } elseif ($sidang->anggota1_sidang_dosen_id === $dosen->id && $sidang->persetujuan_anggota1_sidang === 'pending') {
+                $sidang->persetujuan_anggota1_sidang = $respon;
+                $peranDosen = 'Anggota Sidang 1';
+            } elseif ($sidang->anggota2_sidang_dosen_id === $dosen->id && $sidang->persetujuan_anggota2_sidang === 'pending') {
+                $sidang->persetujuan_anggota2_sidang = $respon;
+                $peranDosen = 'Anggota Sidang 2';
+            } elseif ($sidang->dosen_pembimbing_id === $dosen->id && $sidang->persetujuan_dosen_pembimbing === 'pending') {
+                $sidang->persetujuan_dosen_pembimbing = $respon;
+                $peranDosen = 'Dosen Pembimbing 1';
+            } elseif ($sidang->dosen_penguji1_id === $dosen->id && $sidang->persetujuan_dosen_penguji1 === 'pending') {
+                $sidang->persetujuan_dosen_penguji1 = $respon;
+                $peranDosen = 'Dosen Pembimbing 2';
+            } else {
+                return back()->with('error', 'Anda tidak dapat merespon undangan ini lagi atau tidak terkait.');
+            }
+    
+            $sidang->save();
+    
+            return redirect()->route('dosen.dashboard')->with('success', "Respon Anda sebagai {$peranDosen} ($respon) berhasil disimpan.");
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/KajurController.php
+KajurController{
+    public function loginForm()
+        {
+            return view('kajur.login');
+        }
+    
+        public function login(Request $request)
+        {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+    
+            $credentials = $request->only('email', 'password');
+            $credentials['role'] = 'kajur';
+    
+            if (Auth::attempt($credentials)) {
+                $request->session()->regenerate();
+                return redirect()->intended(route('kajur.dashboard'));
+            }
+    
+            return back()->withErrors([
+                'email' => 'Email atau password salah.',
+            ]);
+        }
+    
+        public function dashboard()
+        {
+            // Logika untuk menampilkan ringkasan data di dashboard Kajur
+            $jumlahSidangSedang = Sidang::whereDate('tanggal_waktu_sidang', Carbon::today())->count();
+            $jumlahSidangTelah = Sidang::whereDate('tanggal_waktu_sidang', '<', Carbon::today())->count();
+            $jumlahSidangAkan = Sidang::whereDate('tanggal_waktu_sidang', '>', Carbon::today())->count();
+    
+            // **Penting: Pastikan variabel ini didefinisikan dan dikirim ke view**
+            $pengajuanSiapSidang = Pengajuan::with('mahasiswa', 'sidang') // Eager load sidang juga
+                                            ->where('status', 'sidang_dijadwalkan_final')
+                                            ->get();
+    
+            return view('kajur.dashboard', compact(
+                'jumlahSidangSedang',
+                'jumlahSidangTelah',
+                'jumlahSidangAkan',
+                'pengajuanSiapSidang' // PASTIKAN ini ada di compact!
+            ));
+        }
+    
+        public function logout(Request $request)
+        {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect('/');
+        }
+    
+        public function daftarPengajuanVerifikasi()
+        {
+            // Hanya tampilkan pengajuan yang statusnya 'sidang_dijadwalkan_final'
+            $pengajuanSiapSidang = Pengajuan::with('mahasiswa')
+                                            ->where('status', 'sidang_dijadwalkan_final')
+                                            ->get();
+            return view('kajur.pengajuan.perlu_verifikasi', compact('pengajuanSiapSidang'));
+        }
+    
+        public function daftarPengajuanTerverifikasi()
+        {
+            // Ambil pengajuan dengan status 'diverifikasi_kajur'
+            $pengajuanTerverifikasi = Pengajuan::with(['mahasiswa', 'sidang']) // Eager load sidang juga jika ingin tampilkan detail sidang
+                                              ->where('status', 'diverifikasi_kajur')
+                                              ->get();
+    
+            return view('kajur.pengajuan.sudah_verifikasi', compact('pengajuanTerverifikasi'));
+        }
+    
+        // Methods for daftarSidangSedang, daftarSidangTelah, daftarSidangAkan are fine as is
+    
+        public function detailSidang(Sidang $sidang)
+        {
+            $sidang->load([
+                'pengajuan.mahasiswa',
+                'dosenPembimbing',
+                'dosenPenguji1',
+                'ketuaSidang',
+                'sekretarisSidang',
+                'anggota1Sidang',
+                'anggota2Sidang',
+            ]);
+            return view('kajur.sidang.show', compact('sidang'));
+        }
+    
+        public function showVerifikasiForm(Pengajuan $pengajuan)
+        {
+            if ($pengajuan->status !== 'sidang_dijadwalkan_final') {
+                return redirect()->route('kajur.dashboard')->with('error', 'Pengajuan ini tidak dalam status siap verifikasi oleh Kajur.');
+            }
+    
+            // Pastikan Anda memuat relasi yang diperlukan untuk ditampilkan di view verifikasi
+            // Misal: mahasiswa, dan detail sidang (jika sudah ada)
+            $pengajuan->load([
+                'mahasiswa',
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.dosenPembimbing',
+                'sidang.dosenPenguji1',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang'
+            ]);
+    
+            return view('kajur.pengajuan.verifikasi', compact('pengajuan'));
+        }
+    
+        public function verifikasiPengajuan(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan hanya pengajuan dengan status 'sidang_dijadwalkan_final' yang bisa diverifikasi
+            if ($pengajuan->status !== 'sidang_dijadwalkan_final') {
+                return redirect()->route('kajur.dashboard')->with('error', 'Pengajuan ini tidak dalam status siap verifikasi oleh Kajur.');
+            }
+    
+            try {
+                DB::beginTransaction();
+    
+                // Ubah status pengajuan menjadi 'diverifikasi_kajur'
+                $pengajuan->status = 'diverifikasi_kajur';
+                $pengajuan->save();
+    
+                DB::commit();
+    
+                return redirect()->route('kajur.pengajuan.terverifikasi')->with('success', 'Pengajuan berhasil diverifikasi oleh Kajur.');
+    
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Terjadi kesalahan saat memverifikasi pengajuan: ' . $e->getMessage());
+            }
+        }
+    
+        public function showPengajuanDetail(Pengajuan $pengajuan)
+        {
+            $pengajuan->load(['mahasiswa', 'dosenPembimbing', 'dosenPenguji1']); // Assuming these are sufficient for a general detail view
+            return view('kajur.pengajuan.detail', compact('pengajuan'));
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/KaprodiController.php
+KaprodiController{
+    public function storeUpdateJadwalSidang(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan relasi sidang sudah di-load. Jika belum ada, buat baru
+            if (!$pengajuan->sidang) {
+                $sidang = new Sidang();
+                $sidang->pengajuan_id = $pengajuan->id;
+                $sidang->dosen_pembimbing_id = $pengajuan->mahasiswa->pembimbing1_id;
+                $sidang->dosen_penguji1_id = $pengajuan->mahasiswa->pembimbing2_id;
+                $sidang->persetujuan_dosen_pembimbing = $sidang->persetujuan_dosen_pembimbing ?? 'pending';
+                $sidang->persetujuan_dosen_penguji1 = $sidang->persetujuan_dosen_penguji1 ?? 'pending';
+                $sidang->save();
+                $pengajuan->load('sidang'); // Reload pengajuan untuk mendapatkan relasi sidang yang baru
+            }
+            
+            $sidang = $pengajuan->sidang; // Ambil objek sidang setelah dipastikan ada
+    
+            // Tentukan apakah ada pembimbing yang sudah menyetujui
+            $pembimbing1Setuju = $sidang->dosenPembimbing && $sidang->persetujuan_dosen_pembimbing === 'setuju';
+            $pembimbing2Setuju = $sidang->dosenPenguji1 && $sidang->persetujuan_dosen_penguji1 === 'setuju';
+            
+            $ketuaSidangRules = ['nullable', 'exists:dosens,id'];
+    
+            if ($pembimbing1Setuju || $pembimbing2Setuju) {
+                $allowedKetuaIds = [];
+                if ($pembimbing1Setuju) {
+                    $allowedKetuaIds[] = $sidang->dosenPembimbing->id;
+                }
+                if ($pembimbing2Setuju) {
+                    $allowedKetuaIds[] = $sidang->dosenPenguji1->id;
+                }
+                
+                $ketuaSidangRules = [
+                    'nullable',
+                    function ($attribute, $value, $fail) use ($allowedKetuaIds) {
+                        if ($value !== null && $value !== '' && !in_array($value, $allowedKetuaIds)) {
+                            $fail('Ketua Sidang yang dipilih harus merupakan Dosen Pembimbing atau Penguji yang sudah menyetujui.');
+                        }
+                    },
+                ];
+            }
+    
+            // --- VALIDASI DATA ---
+            $validator = Validator::make($request->all(), [
+                'ketua_sidang_id' => $ketuaSidangRules,
+                'sekretaris_sidang_id' => 'required|exists:dosens,id',
+                'anggota_1_sidang_id' => 'required|exists:dosens,id',
+                'anggota_2_sidang_id' => 'nullable|exists:dosens,id',
+                'tanggal_waktu_sidang' => 'required|date|after_or_equal:now',
+                'ruangan_sidang' => 'required|string|max:255',
+            ]);
+        
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+            $validatedData = $validator->validated();
+    
+            // Cek duplikasi dosen
+            $assignedDosenIds = array_filter([
+                'ketua_sidang'    => $validatedData['ketua_sidang_id'],
+                'sekretaris_sidang' => $validatedData['sekretaris_sidang_id'],
+                'anggota1_sidang' => $validatedData['anggota_1_sidang_id'],
+                'anggota2_sidang' => $validatedData['anggota_2_sidang_id'],
+                'dosen_pembimbing' => $sidang->dosen_pembimbing_id,
+                'dosen_penguji1'   => $sidang->dosen_penguji1_id,
+            ]);
+        
+            $dosenNames = Dosen::whereIn('id', $assignedDosenIds)->pluck('nama', 'id')->toArray();
+        
+            $conflictingDosen = [];
+            $roleAssignments = [];
+        
+            foreach ($assignedDosenIds as $role => $dosenId) {
+                if (!isset($roleAssignments[$dosenId])) {
+                    $roleAssignments[$dosenId] = [];
+                }
+                $roleAssignments[$dosenId][] = $role;
+            }
+        
+            foreach ($roleAssignments as $dosenId => $roles) {
+                if (count($roles) > 1) {
+                    $isChairmanAlsoPembimbing = (in_array('ketua_sidang', $roles) && in_array('dosen_pembimbing', $roles));
+                    $isChairmanAlsoPenguji1   = (in_array('ketua_sidang', $roles) && in_array('dosen_penguji1', $roles));
+        
+                    if (!$isChairmanAlsoPembimbing && !$isChairmanAlsoPenguji1) {
+                        $conflictingDosen[] = $dosenNames[$dosenId] . ' (peran: ' . implode(', ', $roles) . ')';
+                    }
+                }
+            }
+        
+            if (!empty($conflictingDosen)) {
+                return back()->withErrors(['dosen_duplikat' => 
+                    'Dosen yang ditunjuk tidak boleh memiliki peran ganda yang tidak diizinkan: ' . implode('; ', $conflictingDosen) . '. Pastikan setiap peran unik diisi oleh dosen yang berbeda (kecuali Ketua Sidang boleh merangkap pembimbing/penguji).'])
+                    ->withInput();
+            }
+        
+            DB::beginTransaction();
+            try {
+                // $sidang sudah diambil di awal method
+            
+                $sidang->ketua_sidang_dosen_id = empty($validatedData['ketua_sidang_id']) ? null : $validatedData['ketua_sidang_id'];
+    
+                if ($sidang->ketua_sidang_dosen_id !== null) {
+                     $sidang->persetujuan_ketua_sidang = 'setuju';
+                } else {
+                     $sidang->persetujuan_ketua_sidang = 'pending';
+                }
+                
+                $sidang->sekretaris_sidang_dosen_id = $validatedData['sekretaris_sidang_id'];
+                $sidang->anggota1_sidang_dosen_id = $validatedData['anggota_1_sidang_id'];
+                $sidang->anggota2_sidang_dosen_id = empty($validatedData['anggota_2_sidang_id']) ? null : $validatedData['anggota_2_sidang_id'];
+            
+                $sidang->tanggal_waktu_sidang = $validatedData['tanggal_waktu_sidang'];
+                $sidang->ruangan_sidang = $validatedData['ruangan_sidang'];
+            
+                $sidang->save();
+            
+                // Notifikasi ke dosen yang baru ditunjuk
+                $dosenToNotify = [];
+                // Map dosen IDs to their roles to avoid duplicate notifications and pass correct role
+                $rolesForNotification = [];
+    
+                // Ketua Sidang (jika baru ditunjuk dan belum ada persetujuan)
+                // Namun, karena ketua sidang otomatis 'setuju' saat dipilih,
+                // notifikasi ke Ketua Sidang sebagai Ketua tidak terlalu diperlukan di sini
+                // karena dia sudah menerima notifikasi sebagai Pembimbing/Penguji.
+                // Jika Anda ingin notifikasi terpisah untuk peran Ketua Sidang,
+                // Anda perlu menyesuaikan logic dan DosenSidangInvitation notification.
+    
+                // Sekretaris
+                if ($sidang->sekretaris_sidang_dosen_id && $sidang->persetujuan_sekretaris_sidang === 'pending') {
+                    $dosenToNotify[] = $sidang->sekretaris_sidang_dosen_id;
+                    $rolesForNotification[$sidang->sekretaris_sidang_dosen_id] = 'sekretaris_sidang';
+                }
+                // Anggota 1
+                if ($sidang->anggota1_sidang_dosen_id && $sidang->persetujuan_anggota1_sidang === 'pending') {
+                    $dosenToNotify[] = $sidang->anggota1_sidang_dosen_id;
+                    $rolesForNotification[$sidang->anggota1_sidang_dosen_id] = 'anggota1_sidang';
+                }
+                // Anggota 2 (opsional)
+                if ($sidang->anggota2_sidang_dosen_id !== null && $sidang->persetujuan_anggota2_sidang === 'pending') {
+                    $dosenToNotify[] = $sidang->anggota2_sidang_dosen_id;
+                    $rolesForNotification[$sidang->anggota2_sidang_dosen_id] = 'anggota2_sidang';
+                }
+        
+                // Ambil objek Dosen berdasarkan ID yang akan dinotifikasi
+                $uniqueDosenIdsToNotify = array_unique($dosenToNotify);
+                $newlyAssignedDosen = Dosen::whereIn('id', $uniqueDosenIdsToNotify)->get();
+        
+                foreach ($newlyAssignedDosen as $dosen) {
+                    // Pastikan kita melewatkan $sidang, $pengajuan, dan peran yang benar
+                    $role = $rolesForNotification[$dosen->id] ?? 'Unknown Role'; // Default jika somehow tidak ditemukan
+                    $dosen->notify(new DosenSidangInvitation($sidang, $pengajuan, $role));
+                }
+            
+                // Perbarui status pengajuan
+                if ($pengajuan->status === 'diverifikasi_admin' || $pengajuan->status === 'disetujui_kaprodi') {
+                    $pengajuan->status = 'menunggu_persetujuan_dosen'; 
+                }
+                $pengajuan->save();
+            
+                DB::commit();
+            
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                 ->with('success', 'Jadwal sidang berhasil ' . ($sidang->wasRecentlyCreated ? 'ditentukan' : 'diperbarui') . '. Menunggu persetujuan dosen terkait (jika ada).');
+            
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return back()->with('error', 'Gagal menentukan jadwal sidang: ' . $e->getMessage())->withInput();
+            }
+        }
+    
+        // Method untuk memfinalkan jadwal sidang setelah semua dosen menyetujui
+        public function finalkanJadwal(Pengajuan $pengajuan)
+        {
+            $sidang = $pengajuan->sidang;
+    
+            // Pastikan sidang ada
+            if (!$sidang) {
+                return back()->with('error', 'Jadwal sidang belum ditentukan.');
+            }
+    
+            // Cek apakah semua peran wajib sudah diisi
+            if (
+                !$sidang->sekretaris_sidang_dosen_id ||
+                !$sidang->anggota1_sidang_dosen_id ||
+                !$sidang->tanggal_waktu_sidang ||
+                !$sidang->ruangan_sidang ||
+                !$sidang->dosen_pembimbing_id || 
+                !$sidang->dosen_penguji1_id    
+            ) {
+                return back()->with('error', 'Semua peran dosen wajib (Pembimbing, Penguji 1, Sekretaris, Anggota 1) dan detail jadwal (Tanggal, Ruangan) harus ditentukan sebelum finalisasi.');
+            }
+    
+            // Logika untuk memeriksa apakah Ketua Sidang sudah ditentukan (jika opsinya ada)
+            // DAN semua dosen WAJIB sudah menyetujui
+            $allDosenAgreed = true;
+            $missingApprovals = [];
+    
+            // Cek Pembimbing
+            if ($sidang->dosen_pembimbing_id && $sidang->persetujuan_dosen_pembimbing !== 'setuju') {
+                $allDosenAgreed = false;
+                $missingApprovals[] = $sidang->dosenPembimbing->nama . ' (Pembimbing)';
+            }
+            // Cek Penguji 1
+            if ($sidang->dosen_penguji1_id && $sidang->persetujuan_dosen_penguji1 !== 'setuju') {
+                $allDosenAgreed = false;
+                $missingApprovals[] = $sidang->dosenPenguji1->nama . ' (Penguji 1)';
+            }
+    
+            // Cek Ketua Sidang (jika ada) - sudah di setuju otomatis saat dipilih di storeUpdateJadwalSidang
+            // Jika Ketua Sidang tidak dipilih, maka persetujuannya 'pending'.
+            // Maka finalisasi tidak bisa dilakukan jika ketua_sidang_dosen_id NULL
+            if (!$sidang->ketua_sidang_dosen_id) {
+                 $allDosenAgreed = false;
+                 $missingApprovals[] = 'Ketua Sidang belum ditentukan atau belum disetujui.';
+            }
+    
+    
+            // Cek Sekretaris
+            if ($sidang->sekretaris_sidang_dosen_id && $sidang->persetujuan_sekretaris_sidang !== 'setuju') {
+                $allDosenAgreed = false;
+                $missingApprovals[] = $sidang->sekretarisSidang->nama . ' (Sekretaris)';
+            }
+            // Cek Anggota 1
+            if ($sidang->anggota1_sidang_dosen_id && $sidang->persetujuan_anggota1_sidang !== 'setuju') {
+                $allDosenAgreed = false;
+                $missingApprovals[] = $sidang->anggota1Sidang->nama . ' (Anggota 1)';
+            }
+            // Anggota 2 opsional, hanya cek persetujuan jika IDnya tidak null
+            if ($sidang->anggota2_sidang_dosen_id !== null && $sidang->persetujuan_anggota2_sidang !== 'setuju') { 
+                $allDosenAgreed = false;
+                $missingApprovals[] = $sidang->anggota2Sidang->nama . ' (Anggota 2)';
+            }
+            
+            if ($allDosenAgreed) {
+                $pengajuan->update(['status' => 'sidang_dijadwalkan_final']);
+                // TODO: Kirim notifikasi ke Kajur (jika ada) atau Mahasiswa
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)->with('success', 'Jadwal sidang berhasil difinalisasi dan siap diverifikasi Ketua Jurusan.');
+            } else {
+                $errorMessage = 'Belum semua dosen yang terlibat menyetujui jadwal sidang yang diajukan. Daftar yang belum menyetujui: ' . implode(', ', $missingApprovals) . '.';
+                return back()->with('finalisasi_error', $errorMessage)->withInput();
+            }
+        }
+    
+        // Method untuk menampilkan form login Kaprodi
+        public function loginForm()
+        {
+            return view('kaprodi.auth.login'); // Asumsi view login ada di kaprodi/auth/login.blade.php
+        }
+    
+        // Method untuk memproses login Kaprodi
+        public function login(Request $request)
+        {
+            $credentials = $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+    
+            if (Auth::attempt($credentials)) {
+                $user = Auth::user();
+                if ($user->role === 'kaprodi') {
+                    $request->session()->regenerate();
+                    return redirect()->intended(route('kaprodi.dashboard'));
+                } else {
+                    Auth::logout();
+                    return back()->withErrors([
+                        'email' => 'Anda tidak memiliki akses sebagai Kaprodi.',
+                    ]);
+                }
+            }
+    
+            return back()->withErrors([
+                'email' => 'Kombinasi email dan password salah.',
+            ]);
+        }
+    
+        // Method untuk logout Kaprodi
+        public function logout(Request $request)
+        {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('kaprodi.login')->with('success', 'Anda telah berhasil logout.');
+        }
+    
+        // Method untuk dashboard Kaprodi
+        public function dashboard()
+        {
+            // 1. Ambil Jumlah Dosen
+            $jumlahDosen = Dosen::count();
+    
+            // 2. Ambil Jumlah Pengajuan Baru (misalnya yang statusnya 'diverifikasi_admin')
+            // Sesuaikan status ini berdasarkan alur kerja Anda.
+            // Asumsi 'diverifikasi_admin' adalah status ketika pengajuan sudah diverifikasi admin dan siap untuk kaprodi.
+            $jumlahPengajuan = Pengajuan::where('status', 'diverifikasi_admin')->count();
+    
+            // 3. Ambil Pengajuan Terbaru (misalnya 5 pengajuan terbaru dengan status 'diverifikasi_admin')
+            // Eager load relasi 'mahasiswa' jika Anda ingin menampilkan nama mahasiswa di view
+            $pengajuanBaru = Pengajuan::where('status', 'diverifikasi_admin')
+                                    ->with('mahasiswa')
+                                    ->latest() // Mengurutkan berdasarkan created_at secara descending
+                                    ->take(5) // Mengambil 5 data terbaru
+                                    ->get();
+    
+    
+            // Kirim semua data ini ke view
+            return view('kaprodi.dashboard', compact('jumlahDosen', 'jumlahPengajuan', 'pengajuanBaru'));
+        }
+    
+        // Method untuk menampilkan daftar dosen
+        public function daftarDosen()
+        {
+            $dosens = Dosen::orderBy('nama')->get();
+            return view('kaprodi.dosen.index', compact('dosens'));
+        }
+    
+        // --- Pengajuan-related methods ---
+    
+        // Menampilkan daftar pengajuan yang perlu ditinjau Kaprodi
+        public function indexPengajuan()
+        {
+            // 1. Ambil pengajuan yang sedang menunggu aksi Kaprodi
+            $pengajuansKaprodi = Pengajuan::where('status', 'diverifikasi_admin')
+                                        ->orWhere('status', 'menunggu_persetujuan_dosen')
+                                        ->with('mahasiswa')
+                                        ->orderBy('created_at', 'desc')
+                                        ->paginate(10); // Atau gunakan get() jika tidak ada pagination di bagian ini
+    
+            // 2. Ambil pengajuan yang telah selesai ditangani oleh Kaprodi
+            // Status 'sidang_dijadwalkan_final' berarti sudah difinalisasi Kaprodi.
+            // Status 'ditolak_kaprodi' berarti sudah ditolak Kaprodi.
+            $pengajuansSelesaiKaprodi = Pengajuan::whereIn('status', ['sidang_dijadwalkan_final', 'ditolak_kaprodi'])
+                                                ->with('mahasiswa') // Eager load relasi mahasiswa
+                                                ->orderBy('updated_at', 'desc') // Urutkan berdasarkan update terakhir
+                                                ->get(); // Atau gunakan paginate(10) jika Anda ingin pagination di bagian ini juga
+    
+    
+            // Kirim kedua set data ke view
+            return view('kaprodi.pengajuan.index', compact('pengajuansKaprodi', 'pengajuansSelesaiKaprodi'));
+        }
+    
+        // Menampilkan detail pengajuan
+        public function showPengajuan(Pengajuan $pengajuan)
+        {
+            // Eager load relasi yang diperlukan untuk detail
+            $pengajuan->load([
+                'mahasiswa',
+                'dokumens',
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang',
+                'sidang.dosenPembimbing',
+                'sidang.dosenPenguji1'
+            ]);
+        
+            // Ambil daftar dosen untuk dropdown di form penjadwalan
+            $dosens = Dosen::orderBy('nama')->get(); 
+        
+            return view('kaprodi.pengajuan.show', compact('pengajuan', 'dosens'));
+        }
+    
+        public function showAksiKaprodi(Pengajuan $pengajuan)
+        {
+            // Pastikan relasi sidang sudah ada atau buat jika belum
+            // Ini memastikan $pengajuan->sidang selalu tersedia
+            if (!$pengajuan->sidang) {
+                $sidang = new Sidang();
+                $sidang->pengajuan_id = $pengajuan->id;
+                $sidang->save();
+                $pengajuan->load('sidang'); // Reload pengajuan untuk mendapatkan relasi sidang yang baru
+            }
+    
+            // Eager load relasi yang diperlukan untuk form aksi
+            $pengajuan->load([
+                'mahasiswa',
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang',
+                'sidang.dosenPembimbing',
+                'sidang.dosenPenguji1'
+            ]);
+    
+            // Ambil daftar dosen untuk dropdown di form penjadwalan
+            $dosens = Dosen::orderBy('nama')->get();
+    
+            return view('kaprodi.pengajuan.aksi', compact('pengajuan', 'dosens'));
+        }
+    
+        // Menampilkan form untuk menjadwalkan/mengedit jadwal sidang
+        public function jadwalkanSidangForm(Pengajuan $pengajuan)
+        {
+            // Kaprodi dapat menjadwalkan jika statusnya 'diverifikasi_admin' (setelah admin memverifikasi dokumen),
+            // atau jika statusnya 'siap_dijadwalkan_kaprodi' (setelah kaprodi menyetujui),
+            // atau jika statusnya 'dosen_ditunjuk' (untuk edit jadwal yang sudah ada).
+            if (!in_array($pengajuan->status, ['diverifikasi_admin', 'siap_dijadwalkan_kaprodi', 'dosen_ditunjuk'])) {
+                return redirect()->route('kaprodi.pengajuan.index')->with('error', 'Pengajuan ini tidak dapat dijadwalkan pada tahap ini.');
+            }
+    
+            $dosens = Dosen::orderBy('nama')->get();
+            $sidang = $pengajuan->sidang; 
+    
+            // View yang cocok adalah 'jadwal_sidang_form.blade.php'
+            return view('kaprodi.pengajuan.jadwal_sidang_form', compact('pengajuan', 'dosens', 'sidang'));
+        }
+    
+        // Method untuk menyetujui pengajuan (setelah admin memverifikasi dokumen)
+        public function setujuiPengajuan(Pengajuan $pengajuan)
+        {
+            if ($pengajuan->status !== 'diverifikasi_admin') {
+                return back()->with('error', 'Pengajuan ini tidak dapat disetujui pada tahap ini.');
+            }
+    
+            $pengajuan->update(['status' => 'siap_dijadwalkan_kaprodi']); // Status baru: siap dijadwalkan oleh Kaprodi
+            // TODO: Kirim notifikasi ke admin atau pihak terkait jika diperlukan
+            return redirect()->route('kaprodi.pengajuan.index')->with('success', 'Pengajuan berhasil disetujui untuk dijadwalkan.');
+        }
+    
+        // Method untuk menolak pengajuan (setelah admin memverifikasi dokumen)
+        public function tolakPengajuan(Request $request, Pengajuan $pengajuan)
+        {
+            if ($pengajuan->status !== 'diverifikasi_admin') {
+                return back()->with('error', 'Pengajuan ini tidak dapat ditolak pada tahap ini.');
+            }
+    
+            $request->validate([
+                'alasan_penolakan' => 'required|string|max:500',
+            ]);
+    
+            $pengajuan->update([
+                'status' => 'ditolak_kaprodi',
+                'alasan_penolakan_kaprodi' => $request->alasan_penolakan,
+            ]);
+    
+            // TODO: Kirim notifikasi ke mahasiswa bahwa pengajuannya ditolak Kaprodi
+            return redirect()->route('kaprodi.pengajuan.index')->with('success', 'Pengajuan berhasil ditolak.');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/MahasiswaController.php
+MahasiswaController{
+    /**
+         * Menampilkan form login mahasiswa.
+         * Route: GET /mahasiswa/login
+         * Name: mahasiswa.login
+         */
+        public function loginForm()
+        {
+            return view('mahasiswa.login');
+        }
+    
+        /**
+         * Memproses percobaan login mahasiswa.
+         * Route: POST /mahasiswa/login
+         * Name: mahasiswa.login
+         */
+    
+         public function changePasswordForm()
+         {
+             return view('mahasiswa.change-password'); // Akan membuat file ini di Langkah 3
+         }
+     
+         /**
+          * Memproses perubahan sandi mahasiswa.
+          * Route: POST /mahasiswa/password/change
+          * Name: mahasiswa.password.change
+          */
+        public function changePassword(Request $request)
+        {
+            $request->validate([
+                'current_password' => 'required',
+                'new_password' => 'required|string|min:8|confirmed', // 'confirmed' akan mencari new_password_confirmation
+            ], [
+                'current_password.required' => 'Kata sandi saat ini wajib diisi.',
+                'new_password.required' => 'Kata sandi baru wajib diisi.',
+                'new_password.min' => 'Kata sandi baru harus minimal 8 karakter.',
+                'new_password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
+            ]);
+    
+            $user = Auth::user();
+    
+            if (!Hash::check($request->current_password, $user->password)) {
+                return back()->withErrors(['current_password' => 'Kata sandi saat ini salah.']);
+            }
+    
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+    
+            return redirect()->route('mahasiswa.dashboard')->with('success', 'Kata sandi berhasil diubah!');
+        }
+         
+        public function login(Request $request)
+        {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+    
+            // Coba temukan user di tabel users berdasarkan email dan role 'mahasiswa'
+            $credentials = $request->only('email', 'password');
+            $credentials['role'] = 'mahasiswa';
+    
+            if (Auth::attempt($credentials)) {
+                $request->session()->regenerate();
+                // Redirect ke dashboard mahasiswa setelah login berhasil
+                return redirect()->intended(route('mahasiswa.dashboard'));
+            }
+    
+            // Kembali ke halaman login dengan pesan error jika kredensial tidak cocok
+            return back()->withErrors([
+                'email' => 'Email atau password salah.',
+            ])->withInput($request->only('email')); // Pertahankan input email
+        }
+    
+        // --- Bagian Lupa Sandi / Reset Password dengan OTP ---
+    
+        /**
+         * Menampilkan form untuk memasukkan email saat lupa sandi.
+         * Route: GET /mahasiswa/forgot-password
+         * Name: mahasiswa.forgot.password.form
+         */
+        public function forgotPasswordForm()
+        {
+            return view('mahasiswa.forgot_password');
+        }
+    
+        /**
+         * Mengirim OTP ke email mahasiswa untuk proses reset password.
+         * OTP disimpan di tabel `mahasiswas`.
+         * Route: POST /mahasiswa/forgot-password
+         * Name: mahasiswa.send.reset.otp
+         */
+        public function sendResetOtp(Request $request)
+        {
+            $request->validate([
+                // Validasi bahwa email harus ada di tabel 'mahasiswas'
+                'email' => 'required|email|exists:mahasiswas,email',
+            ], [
+                'email.exists' => 'Email ini tidak terdaftar sebagai email mahasiswa.',
+            ]);
+    
+            // Cari data mahasiswa berdasarkan email yang diinput
+            $mahasiswa = Mahasiswa::where('email', $request->email)->first();
+    
+            // Cek apakah mahasiswa ditemukan dan memiliki user_id yang valid
+            if (!$mahasiswa || !$mahasiswa->user_id) {
+                return back()->withErrors([
+                    'email' => 'Email mahasiswa tidak ditemukan atau tidak terhubung ke akun pengguna.',
+                ])->withInput($request->only('email'));
+            }
+    
+            // Generate OTP baru (6 digit random string)
+            $otp = Str::random(6);
+            // Set waktu kadaluarsa OTP (misalnya 5 menit dari sekarang)
+            $otpExpiresAt = Carbon::now()->addMinutes(5);
+    
+            // Simpan OTP dan waktu kadaluarsa ke tabel `mahasiswas`
+            $mahasiswa->update([
+                'otp' => $otp,
+                'otp_expires_at' => $otpExpiresAt,
+            ]);
+    
+            // Kirim OTP via email menggunakan Mailable
+            try {
+                Mail::to($mahasiswa->email)->send(new OtpMail($otp));
+            } catch (\Exception $e) {
+                // Log error untuk debugging lebih lanjut
+                \Log::error('Gagal mengirim OTP reset password ke ' . $mahasiswa->email . ': ' . $e->getMessage());
+                return back()->withErrors([
+                    'email' => 'Gagal mengirim kode OTP. Silakan coba lagi nanti ya.',
+                ])->withInput($request->only('email'));
+            }
+    
+            // In your sendResetOtp method, you have this:
+            return redirect()->route('mahasiswa.otp.verify.form', ['email' => $mahasiswa->email])
+            ->with('success', 'Kode OTP untuk reset password telah dikirim ke email Anda. Silakan cek kotak masuk Anda (termasuk folder spam).');
+        }
+    
+        /**
+         * Menampilkan form verifikasi OTP.
+         * Route: GET /mahasiswa/otp/verify?email=...
+         * Name: mahasiswa.otp.verify.form
+         */
+        public function showOtpVerifyForm(Request $request)
+        {
+            // Pastikan ada parameter email di URL
+            if (!$request->has('email')) {
+                return redirect()->route('mahasiswa.forgot.password.form')->with('error', 'Akses tidak sah. Email tidak ditemukan.');
+            }
+            return view('mahasiswa.otp_verify', ['email' => $request->email]);
+        }
+    
+        /**
+         * Memproses verifikasi kode OTP.
+         * OTP diverifikasi di tabel `mahasiswas`.
+         * Jika sukses, user akan diberikan token reset password di tabel `users`.
+         * Route: POST /mahasiswa/otp/verify
+         * Name: mahasiswa.otp.verify
+         */
+    
+         public function verifyOtp(Request $request)
+        {
+            $request->validate([
+                'email' => 'required|email',
+                'otp' => 'required|string|size:6',
+            ]);
+    
+            $mahasiswa = Mahasiswa::where('email', $request->email)->first();
+    
+            if (!$mahasiswa) {
+                return back()->withErrors(['otp' => 'Email tidak ditemukan.'])->withInput($request->only('email', 'otp'));
+            }
+    
+            if ($mahasiswa->otp === $request->otp && Carbon::now()->lessThan($mahasiswa->otp_expires_at)) {
+                $mahasiswa->update([
+                    'otp' => null,
+                    'otp_expires_at' => null,
+                ]);
+    
+                $user = $mahasiswa->user;
+    
+                if (!$user) {
+                    return back()->withErrors(['otp' => 'Akun pengguna tidak ditemukan terkait dengan mahasiswa ini.'])->withInput($request->only('email', 'otp'));
+                }
+    
+                $resetToken = Str::random(60);
+                $user->forceFill([
+                    'remember_token' => $resetToken,
+                ])->save();
+    
+                // --- CHANGE START ---
+                // Ensure that the token is passed as a route parameter and email as a query parameter.
+                // Laravel's route helper does this automatically for route parameters defined with {}
+                // and puts others as query parameters. This is already correct.
+                return redirect()->route('mahasiswa.password.reset.form', ['token' => $resetToken, 'email' => $user->email])
+                                 ->with('success', 'Kode OTP berhasil diverifikasi. Silakan atur password baru Anda.');
+                // --- CHANGE END ---
+    
+            }
+    
+            return back()->withErrors(['otp' => 'Kode OTP salah atau sudah kadaluarsa. Silakan coba ulang untuk mendapatkan kode baru.'])->withInput($request->only('email', 'otp'));
+        }
+    
+        /**
+         * Mengirim ulang kode OTP.
+         * Route: POST /mahasiswa/otp/resend
+         * Name: mahasiswa.otp.resend
+         */
+        public function resendOtp(Request $request)
+        {
+            $request->validate([
+                'email' => 'required|email',
+            ]);
+    
+            // Cari mahasiswa berdasarkan email
+            $mahasiswa = Mahasiswa::where('email', $request->email)->first();
+    
+            if (!$mahasiswa || !$mahasiswa->user_id) {
+                return back()->withErrors(['email' => 'Email mahasiswa tidak ditemukan atau tidak terhubung ke akun pengguna.'])->withInput($request->only('email'));
+            }
+    
+            // Generate OTP baru dan waktu kadaluarsa
+            $otp = Str::random(6);
+            $otpExpiresAt = Carbon::now()->addMinutes(5);
+    
+            // Update OTP di tabel `mahasiswas`
+            $mahasiswa->update([
+                'otp' => $otp,
+                'otp_expires_at' => $otpExpiresAt,
+            ]);
+    
+            // Kirim OTP via email
+            try {
+                Mail::to($mahasiswa->email)->send(new OtpMail($otp));
+            } catch (\Exception $e) {
+                \Log::error('Gagal mengirim ulang OTP ke ' . $mahasiswa->email . ': ' . $e->getMessage());
+                return back()->withErrors([
+                    'email' => 'Gagal mengirim ulang kode OTP. Silakan coba lagi nanti.',
+                ])->withInput($request->only('email'));
+            }
+    
+            return back()->with('success', 'Kode OTP baru telah dikirim ke email Anda.')->withInput($request->only('email'));
+        }
+    
+        /**
+         * Menampilkan form untuk mereset password setelah OTP diverifikasi.
+         * Token dan email user diterima dari URL.
+         * Route: GET /mahasiswa/reset-password/{token}?email=...
+         * Name: mahasiswa.password.reset.form
+         */
+        public function showResetPasswordForm(Request $request)
+        {
+            // --- CHANGE START ---
+            // Ensure we correctly retrieve 'token' from the route parameters
+            // and 'email' from the query parameters.
+            $token = $request->route('token'); // Get from the URL segment e.g., /reset-password/{token}
+            $email = $request->query('email'); // Get from the query string e.g., ?email=...
+    
+            // Perform initial validation. If token or email are missing from the URL,
+            // redirect them back to the forgot password form.
+            if (!$token || !$email) {
+                return redirect()->route('mahasiswa.forgot.password.form')
+                                 ->with('error', 'Tautan reset password tidak valid atau tidak lengkap. Silakan mulai proses dari awal.');
+            }
+    
+            // Now, verify the token and email against the database.
+            // Ensure you are using the correct User model here if Mahasiswa and User are separate.
+            $user = User::where('email', $email)
+                        ->where('remember_token', $token)
+                        ->first();
+    
+            if (!$user) {
+                // If user not found with that token/email combo, the link is invalid/expired
+                return redirect()->route('mahasiswa.forgot.password.form')
+                                 ->with('error', 'Tautan reset password tidak valid atau sudah kadaluarsa. Silakan mulai proses dari awal.');
+            }
+    
+            // Pass the retrieved email and token to the view.
+            return view('mahasiswa.reset_password', compact('email', 'token'));
+            // --- CHANGE END ---
+        }
+    
+        /**
+         * Memproses permintaan reset password baru.
+         * Mengupdate password di tabel `users`.
+         * Route: POST /mahasiswa/reset-password
+         * Name: mahasiswa.password.reset
+         */
+    
+        public function resetPassword(Request $request)
+        {
+            $request->validate([
+                'email' => 'required|email',
+                'token' => 'required|string',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
+    
+            // Log the incoming request data for debugging
+            Log::info('Reset Password Request:', $request->all());
+    
+            $user = User::where('email', $request->email)->where('remember_token', $request->token)->first();
+    
+            if (!$user) {
+                Log::warning('Reset Password: User not found or token invalid', ['email' => $request->email, 'token' => $request->token]);
+                return back()->withErrors(['email' => 'Tautan reset password tidak valid atau sudah kadaluarsa. Silakan mulai proses Lupa Sandi dari awal.']);
+            }
+    
+            // Log user details before update
+            Log::info('Reset Password: User found. ID:', ['id' => $user->id, 'email' => $user->email]);
+    
+            // Assign the new plain password
+            $user->password = $request->password;
+    
+            // --- CRITICAL CHANGE: Use $user->save() after setting the password ---
+            // forceFill is usually for mass assignment. For single attribute update,
+            // explicitly set and then save. Also, set remember_token to null *before* saving.
+            $user->remember_token = null; // Clear the token
+    
+            try {
+                $user->save(); // Explicitly save the model
+                Log::info('Reset Password: Password updated successfully for user ID:', ['id' => $user->id]);
+            } catch (\Exception $e) {
+                Log::error('Reset Password: Failed to save password for user ID: ' . $user->id . ' Error: ' . $e->getMessage());
+                return back()->withErrors(['password' => 'Terjadi kesalahan saat menyimpan password baru. Silakan coba lagi.']);
+            }
+    
+            // Log user details after update (you can fetch it again from DB to confirm, or inspect $user object)
+            // Note: $user->password will still show the plain text here before it's "re-fetched" from DB
+            // but the actual stored value should be hashed due to the cast.
+            $updatedUser = User::find($user->id); // Re-fetch to see stored hash
+            Log::info('Reset Password: User after save. Hashed Password Sample:', ['hashed_password_start' => substr($updatedUser->password, 0, 10)]);
+    
+    
+            return redirect()->route('mahasiswa.password.reset.success')->with('success', 'Password Anda berhasil diubah. Silakan login dengan password baru Anda.');
+        }
+    
+        /**
+         * Menampilkan halaman sukses setelah reset password.
+         * Route: GET /mahasiswa/password-reset-success
+         * Name: mahasiswa.password.reset.success
+         */
+        public function passwordResetSuccess()
+        {
+            return view('mahasiswa.password_reset_success');
+        }
+    
+        // --- Bagian Dashboard Mahasiswa ---
+    
+        /**
+         * Menampilkan dashboard mahasiswa.
+         * Route: GET /mahasiswa/dashboard
+         * Name: mahasiswa.dashboard
+         * Middleware: auth, mahasiswa
+         */
+        public function dashboard()
+        {
+            // Pastikan pengguna sudah login
+            if (!Auth::check()) {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $user = Auth::user(); // Dapatkan objek User yang sedang login
+            $mahasiswa = $user->mahasiswa; // Dapatkan objek Mahasiswa terkait melalui relasi
+    
+            // Jika data mahasiswa tidak ditemukan untuk user ini, log out dan redirect
+            if (!$mahasiswa) {
+                Auth::logout();
+                return redirect()->route('mahasiswa.login')->with('error', 'Data mahasiswa tidak ditemukan untuk akun ini. Silakan hubungi admin.');
+            }
+    
+            // Mengambil pengajuan terbaru untuk ditampilkan di dashboard (contoh)
+            $pengajuanTerbaru = Pengajuan::where('mahasiswa_id', $mahasiswa->id)
+                                         ->orderBy('created_at', 'desc')
+                                         ->limit(5)
+                                         ->get();
+            // Memuat relasi yang diperlukan untuk pengajuan terbaru (misal: sidang)
+            $pengajuanTerbaru->load('sidang'); // Sesuaikan dengan relasi yang ada di model Pengajuan
+    
+            // Menghitung total pengajuan (contoh) - Jika Anda ingin menampilkan ini di dashboard, uncomment di blade
+            // $jumlahPengajuan = Pengajuan::where('mahasiswa_id', $mahasiswa->id)->count();
+    
+            // Kirim data ke view dashboard
+            return view('mahasiswa.dashboard', compact('pengajuanTerbaru', 'mahasiswa')); // Hapus jumlahPengajuan jika tidak dipakai
+        }
+    
+        /**
+         * Menampilkan form untuk mengedit profil mahasiswa.
+         * Route: GET /mahasiswa/profile/edit
+         * Name: mahasiswa.profile.edit
+         * Middleware: auth, mahasiswa
+         */
+        public function editProfileForm()
+        {
+            if (!Auth::check()) {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $user = Auth::user();
+            $mahasiswa = $user->mahasiswa;
+    
+            if (!$mahasiswa) {
+                Auth::logout();
+                return redirect()->route('mahasiswa.login')->with('error', 'Data mahasiswa tidak ditemukan.');
+            }
+    
+            return view('mahasiswa.edit_profile', compact('mahasiswa'));
+        }
+    
+        /**
+         * Memperbarui profil mahasiswa.
+         * Route: POST /mahasiswa/profile/update
+         * Name: mahasiswa.profile.update
+         * Middleware: auth, mahasiswa
+         */
+        public function updateProfile(Request $request)
+        {
+            if (!Auth::check()) {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $user = Auth::user();
+            $mahasiswa = $user->mahasiswa;
+    
+            if (!$mahasiswa) {
+                return back()->with('error', 'Data mahasiswa tidak ditemukan.');
+            }
+    
+            $request->validate([
+                'nama' => 'required|string|max:255',
+                'nim' => ['required', 'string', 'max:20', Rule::unique('mahasiswas')->ignore($mahasiswa->id)],
+                'email' => ['required', 'email', 'max:255', Rule::unique('mahasiswas')->ignore($mahasiswa->id)],
+                'prodi' => 'nullable|string|max:255',
+                'angkatan' => 'nullable|integer|digits:4',
+                'nomor_hp' => 'nullable|string|max:20',
+                // Tambahkan validasi untuk bidang lain yang relevan
+            ]);
+    
+            // Update data mahasiswa
+            $mahasiswa->update([
+                'nama' => $request->nama,
+                'nim' => $request->nim,
+                'email' => $request->email,
+                'prodi' => $request->prodi,
+                'angkatan' => $request->angkatan,
+                'nomor_hp' => $request->nomor_hp,
+                // Update bidang lain di sini
+            ]);
+    
+            // Pastikan juga email di tabel `users` diperbarui jika berubah
+            if ($user->email !== $request->email) {
+                $user->email = $request->email;
+                $user->save();
+            }
+    
+            // Jika ada perubahan password, tambahkan validasi dan update di sini
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => 'string|min:8|confirmed',
+                ]);
+                $user->password = Hash::make($request->password);
+                $user->save();
+            }
+    
+            return redirect()->route('mahasiswa.dashboard')->with('success', 'Profil berhasil diperbarui!');
+        }
+    
+    
+        /**
+         * Memproses logout mahasiswa.
+         * Route: POST /mahasiswa/logout
+         * Name: mahasiswa.logout
+         */
+        public function logout(Request $request)
+        {
+            Auth::logout(); // Logout user
+            $request->session()->invalidate(); // Invalidasi sesi
+            $request->session()->regenerateToken(); // Regenerasi token CSRF
+            return redirect()->route('mahasiswa.login'); // Redirect ke halaman login
+        }
+    
+        // --- Fungsi Import dan Export (jika relevan) ---
+        // Pastikan Anda telah menginstal maatwebsite/excel jika menggunakan ini
+        // dan telah membuat kelas MahasiswaImport/MahasiswaExport
+    
+        public function importForm()
+        {
+            // View untuk form import
+            return view('admin.mahasiswa.import');
+        }
+    
+        public function import(Request $request)
+        {
+            $request->validate([
+                'file' => 'required|mimes:xls,xlsx,csv|max:2048', // Validasi file Excel/CSV
+            ]);
+    
+            try {
+                // Uncomment baris ini jika Anda menggunakan Maatwebsite Excel
+                // Excel::import(new MahasiswaImport, $request->file('file'));
+                return redirect()->back()->with('success', 'Data mahasiswa berhasil diimpor!');
+            } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+                $failures = $e->failures();
+                $errors = [];
+                foreach ($failures as $failure) {
+                    $attribute = $failure->attribute();
+                    $errorMessage = implode(', ', $failure->errors());
+                    $errors[] = 'Baris ' . $failure->row() . ' (Kolom: ' . $attribute . '): ' . $errorMessage;
+                }
+                return redirect()->back()->with('error', 'Gagal mengimpor data mahasiswa. Ada kesalahan validasi: <ul><li>' . implode('</li><li>', $errors) . '</li></ul>');
+            } catch (\Exception $e) {
+                \Log::error('Kesalahan impor mahasiswa umum: ' . $e->getMessage());
+                return redirect()->back()->with('error', 'Terjadi kesalahan saat mengimpor data mahasiswa: ' . $e->getMessage());
+            }
+        }
+    
+        public function export()
+        {
+            $fileName = 'data_mahasiswa_' . date('Ymd_His') . '.xlsx';
+            // Uncomment baris ini jika Anda menggunakan Maatwebsite Excel
+            // return Excel::download(new MahasiswaExport, $fileName);
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/PengajuanController.php
+PengajuanController{
+    private function getLoggedInMahasiswa()
+        {
+            return Mahasiswa::where('user_id', Auth::id())->firstOrFail();
+        }
+    
+        public function pilihJenis()
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login sebagai mahasiswa untuk mengakses halaman ini.');
+            }
+            return view('mahasiswa.pengajuan.pilih-jenis');
+        }
+    
+        public function create($jenis)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+        
+            if (!in_array($jenis, ['ta', 'pkl'])) {
+                abort(404, 'Jenis pengajuan tidak valid.');
+            }
+        
+            $mahasiswa = $this->getLoggedInMahasiswa(); 
+        
+            $pengajuanAktif = Pengajuan::where('mahasiswa_id', $mahasiswa->id)
+                                        ->whereIn('status', ['diajukan_mahasiswa', 'diverifikasi_admin', 'dosen_ditunjuk', 'sedang_diproses'])
+                                        ->first();
+        
+            if ($pengajuanAktif) {
+                return redirect()->route('mahasiswa.pengajuan.index')
+                                 ->with('error', 'Anda sudah memiliki pengajuan yang sedang diproses. Anda tidak dapat membuat pengajuan baru sampai pengajuan sebelumnya selesai atau dibatalkan.');
+            }
+        
+            $dokumenSyarat = $this->getDokumenSyarat($jenis);
+            $dosens = Dosen::orderBy('nama')->get(); 
+            return view('mahasiswa.pengajuan.form', compact('jenis', 'dokumenSyarat', 'dosens'));
+        }
+    
+        public function store(Request $request)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') { 
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            $pengajuanAktif = Pengajuan::where('mahasiswa_id', $mahasiswa->id)
+                                        ->whereIn('status', ['diajukan_mahasiswa', 'diverifikasi_admin', 'dosen_ditunjuk', 'sedang_diproses'])
+                                        ->first();
+    
+            if ($pengajuanAktif) {
+                return redirect()->route('mahasiswa.pengajuan.index')
+                                 ->with('error', 'Anda sudah memiliki pengajuan yang sedang diproses. Anda tidak dapat membuat pengajuan baru sampai pengajuan sebelumnya selesai atau dibatalkan.');
+            }
+    
+            $status = $request->input('action') === 'draft' ? 'draft' : 'diajukan_mahasiswa';
+    
+            $validationRules = [
+                'jenis_pengajuan' => 'required|in:pkl,ta',
+                'dosen_pembimbing1_id' => $status === 'diajukan_mahasiswa' ? 'required|exists:dosens,id' : 'nullable|exists:dosens,id',
+                'dosen_pembimbing2_id' => 'nullable|exists:dosens,id|different:dosen_pembimbing1_id', 
+                // Tidak ada validasi untuk ketua_sidang_dosen_id di sini karena mahasiswa tidak boleh mengaturnya saat membuat baru atau mengedit
+                // Ini akan diatur oleh admin
+            ];
+    
+            $dokumenSyaratList = $this->getDokumenSyarat($request->jenis_pengajuan);
+    
+            foreach ($dokumenSyaratList as $key => $namaDokumen) {
+                $validationRules["dokumen.{$key}"] = ($status === 'diajukan_mahasiswa') ? 'required|file|mimes:pdf,jpg,jpeg,png|max:2048' : 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048';
+            }
+    
+            $validator = Validator::make($request->all(), $validationRules);
+    
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+    
+            $pengajuan = Pengajuan::create([
+                'mahasiswa_id' => $mahasiswa->id,
+                'jenis_pengajuan' => $request->jenis_pengajuan,
+                'status' => $status,
+            ]);
+    
+            // Buat entri sidang dengan dosen pembimbing yang dipilih mahasiswa
+            $pengajuan->sidang()->create([
+                'dosen_pembimbing_id' => $request->dosen_pembimbing1_id,
+                'dosen_penguji1_id' => $request->dosen_pembimbing2_id, // Ini adalah Dosen Pembimbing 2
+                'status' => 'belum_dijadwalkan', 
+                // Ketua sidang, sekretaris, anggota, tanggal_waktu_sidang, ruangan_sidang
+                // tidak diisi oleh mahasiswa saat membuat/mengedit, diisi oleh admin/proses lain.
+            ]);
+    
+            // Upload dan simpan dokumen
+            if ($request->has('dokumen')) {
+                foreach ($request->file('dokumen') as $nama_dokumen_key => $file) {
+                    if (array_key_exists($nama_dokumen_key, $dokumenSyaratList)) {
+                        $originalFileName = Str::slug($dokumenSyaratList[$nama_dokumen_key]) . '_' . time() . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('dokumen_pengajuan/' . $pengajuan->id, $originalFileName, 'public');
+    
+                        Dokumen::create([
+                            'pengajuan_id' => $pengajuan->id,
+                            'nama_file' => $dokumenSyaratList[$nama_dokumen_key],
+                            'path_file' => $path,
+                            'status' => 'diajukan_mahasiswa',
+                        ]);
+                    }
+                }
+            }
+    
+            if ($status === 'draft') {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil disimpan sebagai draft.');
+            } else {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil diajukan_mahasiswa dan akan segera diverifikasi!');
+            }
+        }
+    
+        public function show(Pengajuan $pengajuan)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
+                abort(403, 'Anda tidak diizinkan mengakses pengajuan ini.');
+            }
+    
+            $pengajuan->load([
+                'dokumens',
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang',
+                'sidang.dosenPembimbing', // Load dosen pembimbing 1
+                'sidang.dosenPenguji1',   // Load dosen pembimbing 2 (yang disimpan di dosen_penguji1_id)
+            ]);
+    
+            return view('mahasiswa.pengajuan.show', compact('pengajuan'));
+        }
+    
+        public function simpanSebagaiDraft(Request $request, Pengajuan $pengajuan)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
+                abort(403, 'Unauthorized');
+            }
+    
+            $pengajuan->update(['status' => 'draft']);
+    
+            return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil diperbarui sebagai draft.');
+        }
+    
+        public function edit(Pengajuan $pengajuan)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
+                abort(403, 'Unauthorized');
+            }
+    
+            if ($pengajuan->status !== 'draft' && !in_array($pengajuan->status, ['ditolak_admin', 'ditolak_kaprodi'])) {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan sudah diajukan_mahasiswa dan tidak bisa diedit.');
+            }
+    
+            $jenis = $pengajuan->jenis_pengajuan;
+            $dokumenSyarat = $this->getDokumenSyarat($jenis);
+            $dokumenTerupload = $pengajuan->dokumens->keyBy('nama_file');
+            $dosens = Dosen::orderBy('nama')->get();
+    
+            return view('mahasiswa.pengajuan.edit', compact('pengajuan', 'jenis', 'dokumenSyarat', 'dokumenTerupload', 'dosens'));
+        }
+    
+        public function update(Request $request, Pengajuan $pengajuan)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+            $mahasiswa = $this->getLoggedInMahasiswa();
+        
+            if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
+                abort(403, 'Unauthorized');
+            }
+        
+            if ($pengajuan->status !== 'draft' && !in_array($pengajuan->status, ['ditolak_admin', 'ditolak_kaprodi'])) {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan ini tidak dapat diupdate karena sudah dalam proses verifikasi.');
+            }
+        
+            $status = $request->input('action') === 'submit' ? 'diajukan_mahasiswa' : 'draft';
+        
+            $validationRules = [
+                'action' => 'required|in:draft,submit',
+                'dosen_pembimbing_id' => $status === 'diajukan_mahasiswa' ? 'required|exists:dosens,id' : 'nullable|exists:dosens,id',
+                'dosen_penguji1_id' => 'nullable|exists:dosens,id|different:dosen_pembimbing_id', // Ini Pembimbing 2
+                // Hapus 'ketua_sidang_dosen_id' dari validation rules karena mahasiswa tidak mengaturnya
+            ];
+        
+            $dokumenSyaratList = $this->getDokumenSyarat($pengajuan->jenis_pengajuan);
+        
+            foreach ($dokumenSyaratList as $key => $namaDokumen) {
+                $fieldName = 'dokumen_' . $key;
+                $uploadedDoc = $pengajuan->dokumens->where('nama_file', $namaDokumen)->first();
+            
+                $rulesForThisDoc = [
+                    'nullable',
+                    'file',
+                    'mimes:pdf,jpg,jpeg,png',
+                    'max:2048',
+                ];
+            
+                if ($status === 'diajukan_mahasiswa' && !$uploadedDoc) {
+                    $rulesForThisDoc[] = 'required';
+                }
+            
+                $validationRules[$fieldName] = $rulesForThisDoc;
+            }
+        
+            $validator = Validator::make($request->all(), $validationRules);
+        
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+        
+            $pengajuan->update([
+                'status' => $status,
+            ]);
+        
+            // Update entri sidang
+            if ($pengajuan->sidang) {
+                $pengajuan->sidang->update([
+                    'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
+                    'dosen_penguji1_id' => $request->dosen_penguji1_id, // Update Dosen Pembimbing 2
+                    // Jangan update ketua_sidang_dosen_id di sini, karena itu diurus oleh admin/sistem
+                    'status' => $status === 'diajukan_mahasiswa' ? 'belum_dijadwalkan' : $pengajuan->sidang->status,
+                ]);
+            } else {
+                // Ini seharusnya tidak terjadi di update, tapi sebagai fallback
+                $pengajuan->sidang()->create([
+                    'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
+                    'dosen_penguji1_id' => $request->dosen_penguji1_id,
+                    'status' => 'belum_dijadwalkan',
+                ]);
+            }
+        
+            // Proses dokumen
+            foreach ($dokumenSyaratList as $key => $namaDokumen) {
+                $fieldName = 'dokumen_' . $key;
+                if ($request->hasFile($fieldName)) {
+                    $file = $request->file($fieldName);
+                    $namaFileSyarat = $namaDokumen;
+                
+                    $existingDokumen = Dokumen::where('pengajuan_id', $pengajuan->id)
+                                              ->where('nama_file', $namaFileSyarat)
+                                              ->first();
+                
+                    $originalFileName = Str::slug($namaFileSyarat) . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $path = $file->storeAs('dokumen_pengajuan/' . $pengajuan->id, $originalFileName, 'public');
+                
+                    if ($existingDokumen) {
+                        Storage::disk('public')->delete($existingDokumen->path_file);
+                        $existingDokumen->update(['path_file' => $path, 'status' => 'diajukan_mahasiswa']);
+                    } else {
+                        Dokumen::create([
+                            'pengajuan_id' => $pengajuan->id,
+                            'nama_file' => $namaFileSyarat,
+                            'path_file' => $path,
+                            'status' => 'diajukan_mahasiswa',
+                        ]);
+                    }
+                }
+            }
+        
+            if ($status === 'draft') {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan draft berhasil diperbarui.');
+            } else {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil difinalisasi dan diajukan!');
+            }
+        }
+    
+        public function index()
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            $pengajuans = Pengajuan::where('mahasiswa_id', $mahasiswa->id)
+                                    ->with('mahasiswa', 'sidang')
+                                    ->orderBy('created_at', 'desc')
+                                    ->get();
+    
+            return view('mahasiswa.pengajuan.index', compact('pengajuans'));
+        }
+    
+        private function getDokumenSyarat($jenisPengajuan)
+        {
+            if ($jenisPengajuan == 'pkl') {
+                return [
+                    'laporan_pkl' => 'Laporan PKL sebanyak 2 rangkap',
+                    'buku_pkl' => 'Buku PKL',
+                    'kuisioner_survey_pkl' => 'Kuisioner survey PKL yang telah diisi dan ditandatangani serta distempel perusahaan',
+                    'kuisioner_kelulusan' => 'Kuisioner Kelulusan (jika ada)',
+                    'kuisioner_balikan_pkl' => 'Kuisioner balikan PKL',
+                    'lembaran_rekomendasi_penguji' => 'Lembaran Rekomendasi Penguji',
+                    'surat_permohonan_sidang_pkl' => 'Surat Permohonan Sidang PKL',
+                    'lembar_penilaian_sidang_pkl' => 'Lembar Penilaian Sidang PKL (Penguji)',
+                    'surat_keterangan_pelaksanaan_pkl' => 'Surat keterangan pelaksanaan PKL (Asli, distempel dan ditandatangani pihak perusahaan)',
+                    'fotocopy_cover_laporan_pkl' => 'Fotocopy cover laporan PKL yang ada tanda tangan persetujuan sidang dari dosen pembimbing PKL',
+                    'fotocopy_lembar_penilaian_industri' => 'Fotocopy lembar penilaian dari pembimbing di industri (ditandatangani pembimbing industri)',
+                    'fotocopy_lembar_penilaian_dosen_pembimbing_pkl' => 'Fotocopy lembar penilaian dari dosen pembimbing PKL (ditandantangani pembimbing kampus)',
+                    'fotocopy_lembar_konsultasi_bimbingan_pkl' => 'Fotocopy lembar konsultasi bimbingan PKL (diisi dan ditandatangani pembimbing kampus)',
+                ];
+            } elseif ($jenisPengajuan == 'ta') {
+                return [
+                    'surat_permohonan_sidang' => 'Surat Permohonan Sidang',
+                    'surat_keterangan_bebas_kompensasi_ganjil_genap' => 'Surat Keterangan bebas Kompensasi Semester Ganjil & Genap',
+                    'ipk_terakhir' => 'IPK Terakhir (Lampiran Rapor Semester 1 s.d 5 (D3) dan 1 s.d 7 (D4))',
+                    'bukti_menyerahkan_laporan_pkl' => 'Bukti menyerahkan laporan PKL',
+                    'nilai_toeic' => 'Nilai TOEIC minimal 450 (D3) dan 550 (D4) (Lampirkan kartu TOEIC)',
+                    'tugas_akhir_rangkap_4' => 'Tugas Akhir Rangkap 4 yang disetujui pembimbing',
+                    'kartu_bimbingan_konsultasi_ta_9x' => 'Kartu Bimbingan/Konsultasi Tugas Akhir 9x',
+                    'fotocopy_ijazah_sma_ma_smk' => 'Fotokopi Ijazah SMA/MA/SMK',
+                    'fotocopy_sertifikat_diksarlin' => 'Fotokopi Sertifikat Diksarlin',
+                    'sertifikat_responsi' => 'Sertifikat Responsi',
+                    'nilai_satuan_kredit_ekstrakurikuler' => 'Nilai Satuan Kredit Ekstrakurikuler (SKE) (Lampirkan kartu SKE)',
+                ];
+            }
+            return [];
+        }
+    
+        public function destroy(Pengajuan $pengajuan)
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+            $mahasiswa = $this->getLoggedInMahasiswa();
+    
+            if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
+                abort(403, 'Unauthorized access.');
+            }
+    
+            if ($pengajuan->status === 'diverifikasi_admin' ||
+                $pengajuan->status === 'dosen_ditunjuk' ||
+                $pengajuan->status === 'ditolak_admin' ||
+                $pengajuan->status === 'ditolak_kaprodi' ||
+                $pengajuan->status === 'selesai'
+            ) {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan ini tidak dapat dihapus karena sudah dalam proses verifikasi atau telah diproses.');
+            }
+    
+            if ($pengajuan->sidang) {
+                $pengajuan->sidang->delete();
+            }
+    
+            foreach ($pengajuan->dokumens as $dokumen) {
+                Storage::disk('public')->delete($dokumen->path_file);
+                $dokumen->delete();
+            }
+    
+            $pengajuan->delete();
+    
+            return redirect()->route('mahasiswa.pengajuan.index')
+                             ->with('success', 'Pengajuan berhasil dihapus.');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/SidangController.php
+SidangController{
+    //
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/Kaprodi/PengajuanKaprodiController.php
+PengajuanKaprodiController{
+    public function index()
+        {
+            // Pengajuan yang menunggu Kaprodi jadwalkan (setelah diverifikasi admin)
+            // atau yang sudah dijadwalkan tapi bisa diubah
+            $pengajuansKaprodi = Pengajuan::whereIn('status', ['diverifikasi_admin', 'menunggu_penjadwalan_kaprodi', 'dosen_ditunjuk'])
+                                        ->orderBy('created_at', 'desc')
+                                        ->with('mahasiswa', 'sidang.ketuaSidang', 'sidang.sekretarisSidang', 'sidang.anggota1Sidang', 'sidang.anggota2Sidang', 'sidang.dosenPembimbing', 'sidang.dosenPenguji1', 'sidang.dosenPenguji2')
+                                        ->get();
+    
+            // Pengajuan yang sudah final (tidak bisa diubah lagi oleh Kaprodi)
+            $pengajuansSelesaiKaprodi = Pengajuan::whereIn('status', ['sidang_dijadwalkan_final', 'ditolak_kaprodi'])
+                                                ->orderBy('created_at', 'desc')
+                                                ->with('mahasiswa', 'sidang.ketuaSidang', 'sidang.sekretarisSidang', 'sidang.anggota1Sidang', 'sidang.anggota2Sidang', 'sidang.dosenPembimbing', 'sidang.dosenPenguji1', 'sidang.dosenPenguji2')
+                                                ->get();
+    
+            return view('kaprodi.pengajuan.index', compact('pengajuansKaprodi', 'pengajuansSelesaiKaprodi'));
+        }
+    
+        public function show(Pengajuan $pengajuan)
+        {
+            // Muat semua relasi dosen di sidang
+            $pengajuan->load([
+                'mahasiswa',
+                'dokumens',
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang',
+            ]);
+    
+            $dosens = Dosen::orderBy('nama')->get();
+    
+            return view('kaprodi.pengajuan.show', compact('pengajuan', 'dosens'));
+        }
+    
+        // Method ini hanya akan mengubah status pengajuan ke 'menunggu_penjadwalan_kaprodi'
+        // setelah admin memverifikasi. Detail sidang akan diatur di method terpisah.
+        public function setujui(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan status pengajuan adalah 'diverifikasi_admin'
+            if ($pengajuan->status !== 'diverifikasi_admin') {
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan tidak dapat disetujui pada status saat ini.');
+            }
+        
+            // Update status pengajuan menjadi 'menunggu_penjadwalan_kaprodi'
+            // Ini adalah status di mana Kaprodi dapat mulai menjadwalkan sidang.
+            $pengajuan->update(['status' => 'menunggu_penjadwalan_kaprodi']);
+            
+            // Buat record Sidang kosong jika belum ada (akan diisi nanti di form jadwal)
+            if (!$pengajuan->sidang) {
+                $pengajuan->sidang()->create([]);
+            }
+    
+            return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                             ->with('success', 'Pengajuan berhasil disetujui oleh Kaprodi. Silakan jadwalkan sidang.');
+        }
+    
+        public function tolak(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan pengajuan berstatus yang bisa ditolak oleh Kaprodi
+            if (!in_array($pengajuan->status, ['diverifikasi_admin', 'menunggu_penjadwalan_kaprodi', 'dosen_ditunjuk'])) {
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan tidak dapat ditolak pada status saat ini.');
+            }
+    
+            $request->validate([
+                'alasan_penolakan_kaprodi' => 'required|string|max:500',
+            ]);
+    
+            $pengajuan->update([
+                'status' => 'ditolak_kaprodi',
+                'alasan_penolakan_kaprodi' => $request->alasan_penolakan_kaprodi, // Gunakan kolom yang benar
+            ]);
+    
+            // Hapus record sidang jika ada (opsional, tergantung kebijakan)
+            if ($pengajuan->sidang) {
+                $pengajuan->sidang->delete();
+            }
+    
+            return redirect()->route('kaprodi.pengajuan.index')
+                             ->with('success', 'Pengajuan berhasil ditolak oleh Kaprodi.');
+        }
+    
+        // Menampilkan form untuk menjadwalkan/mengedit sidang
+        public function jadwalSidangForm(Pengajuan $pengajuan)
+        {
+            // Pastikan pengajuan sudah melewati verifikasi admin dan menunggu penjadwalan Kaprodi
+            if (!in_array($pengajuan->status, ['menunggu_penjadwalan_kaprodi', 'dosen_ditunjuk'])) {
+                 return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan tidak dalam status yang tepat untuk penjadwalan sidang.');
+            }
+    
+            $pengajuan->load('sidang'); // Muat data sidang jika sudah ada
+            $dosens = Dosen::orderBy('nama')->get(); // Ambil semua dosen
+            
+            // Data default untuk form (jika belum ada sidang, inisialisasi objek Sidang baru)
+            $sidang = $pengajuan->sidang ?? new Sidang();
+    
+            return view('kaprodi.pengajuan.jadwal_sidang_form', compact('pengajuan', 'dosens', 'sidang'));
+        }
+    
+        public function storeUpdateJadwalSidang(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan pengajuan sudah melewati verifikasi admin dan menunggu penjadwalan Kaprodi
+            if (!in_array($pengajuan->status, ['menunggu_penjadwalan_kaprodi', 'dosen_ditunjuk'])) {
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                ->with('error', 'Pengajuan tidak dalam status yang tepat untuk memperbarui jadwal sidang.');
+            }
+    
+            // Validasi input
+            $validator = Validator::make($request->all(), [
+                'tanggal_sidang'           => 'required|date_format:Y-m-d|after_or_equal:today', // Validasi tanggal
+                'waktu_sidang'             => 'required|date_format:H:i', // Validasi waktu
+                'ruangan_sidang'           => 'required|string|max:255',
+                'ketua_sidang_dosen_id'    => 'required|exists:dosens,id',
+                'sekretaris_sidang_dosen_id' => 'required|exists:dosens,id|different:ketua_sidang_dosen_id',
+                'anggota1_sidang_dosen_id' => 'required|exists:dosens,id|different:ketua_sidang_dosen_id|different:sekretaris_sidang_dosen_id',
+                'anggota2_sidang_dosen_id' => 'nullable|exists:dosens,id|different:ketua_sidang_dosen_id|different:sekretaris_sidang_dosen_id|different:anggota1_sidang_dosen_id',
+            ]);
+    
+            // Gabungkan tanggal dan waktu untuk membentuk tanggal_waktu_sidang
+            $combinedDateTime = Carbon::parse($request->tanggal_sidang . ' ' . $request->waktu_sidang);
+    
+            // Tambahkan validasi kustom untuk memastikan tanggal dan waktu gabungan tidak di masa lalu
+            if ($combinedDateTime->isPast()) {
+                $validator->after(function ($validator) {
+                    $validator->errors()->add('tanggal_waktu_sidang', 'Tanggal dan waktu sidang tidak boleh di masa lalu.');
+                });
+            }
+    
+            // Validasi unik untuk dosen di dalam sidang yang sama
+            // Ambil semua ID dosen yang dikirim
+            $dosenIdsInput = array_filter([
+                $request->input('ketua_sidang_dosen_id'),
+                $request->input('sekretaris_sidang_dosen_id'),
+                $request->input('anggota1_sidang_dosen_id'),
+                $request->input('anggota2_sidang_dosen_id'),
+            ]);
+            // Cek apakah ada duplikasi
+            if (count($dosenIdsInput) !== count(array_unique($dosenIdsInput))) {
+                $validator->after(function ($validator) {
+                    $validator->errors()->add('dosen_bentrok', 'Ada dosen yang ditunjuk lebih dari satu kali dalam peran yang berbeda pada sidang yang sama.');
+                });
+            }
+    
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+    
+            // Cek Bentrok Jadwal Sidang (di satu hari, hanya ada 1 persidangan di satu tempat)
+            $existingSidangRuangan = Sidang::where('tanggal_waktu_sidang', $combinedDateTime)
+                                        ->where('ruangan_sidang', $request->ruangan_sidang)
+                                        ->where('pengajuan_id', '!=', $pengajuan->id) // Kecualikan sidang yang sedang di-edit
+                                        ->first();
+    
+            if ($existingSidangRuangan) {
+                return back()->withInput()->withErrors([
+                    'jadwal_ruangan_bentrok' => 'Ruangan ' . $request->ruangan_sidang . ' sudah digunakan pada ' . $combinedDateTime->format('d F Y H:i') . ' untuk sidang lain.'
+                ]);
+            }
+    
+            // Cek Bentrok Jadwal Dosen (apakah dosen yang ditunjuk sudah punya jadwal di waktu yang sama)
+            $bentrokDosen = Sidang::where('tanggal_waktu_sidang', $combinedDateTime)
+                                ->where('pengajuan_id', '!=', $pengajuan->id) // Kecualikan sidang yang sedang di-edit
+                                ->where(function ($query) use ($dosenIdsInput) {
+                                    $query->whereIn('ketua_sidang_dosen_id', $dosenIdsInput)
+                                          ->orWhereIn('sekretaris_sidang_dosen_id', $dosenIdsInput)
+                                          ->orWhereIn('anggota1_sidang_dosen_id', $dosenIdsInput)
+                                          ->orWhereIn('anggota2_sidang_dosen_id', $dosenIdsInput);
+                                    // Tidak perlu mengecek dosen_pembimbing_id dan dosen_penguji karena sudah dihapus dari form
+                                })
+                                ->first();
+    
+            if ($bentrokDosen) {
+                $bentrokNamaDosen = [];
+                foreach ($dosenIdsInput as $dosenId) {
+                    if (
+                        $bentrokDosen->ketua_sidang_dosen_id == $dosenId ||
+                        $bentrokDosen->sekretaris_sidang_dosen_id == $dosenId ||
+                        $bentrokDosen->anggota1_sidang_dosen_id == $dosenId ||
+                        $bentrokDosen->anggota2_sidang_dosen_id == $dosenId
+                    ) {
+                        $bentrokNamaDosen[] = Dosen::find($dosenId)->nama;
+                    }
+                }
+                $bentrokNamaDosen = array_unique($bentrokNamaDosen);
+    
+                return back()->withInput()->withErrors([
+                    'dosen_jadwal_bentrok' => 'Dosen berikut sudah memiliki jadwal sidang lain pada waktu tersebut: ' . implode(', ', $bentrokNamaDosen) . '.'
+                ]);
+            }
+    
+            // Cari atau buat record sidang. Karena Sidang memiliki relasi hasOne, kita bisa menggunakan updateOrCreate
+            $sidang = Sidang::updateOrCreate(
+                ['pengajuan_id' => $pengajuan->id],
+                [
+                    'tanggal_waktu_sidang'     => $combinedDateTime, // Gunakan Carbon object yang sudah digabung
+                    'ruangan_sidang'           => $request->ruangan_sidang,
+                    'ketua_sidang_dosen_id'    => $request->ketua_sidang_dosen_id,
+                    'sekretaris_sidang_dosen_id' => $request->sekretaris_sidang_dosen_id,
+                    'anggota1_sidang_dosen_id' => $request->anggota1_sidang_dosen_id,
+                    'anggota2_sidang_dosen_id' => $request->anggota2_sidang_dosen_id,
+                ]
+            );
+    
+            // Update status pengajuan jika belum 'dosen_ditunjuk' (atau dari 'menunggu_penjadwalan_kaprodi')
+            if ($pengajuan->status === 'menunggu_penjadwalan_kaprodi') {
+                $pengajuan->update(['status' => 'dosen_ditunjuk']);
+            }
+    
+            return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                             ->with('success', 'Jadwal sidang dan penunjukan dosen berhasil diperbarui.');
+        }
+    
+        // Metode untuk menetapkan jadwal sidang sebagai final
+        public function setJadwalFinal(Pengajuan $pengajuan)
+        {
+            // Pastikan pengajuan sudah berstatus 'dosen_ditunjuk' dan memiliki detail sidang lengkap
+            // Hapus pemeriksaan dosen_pembimbing_id dan dosen_penguji1_id
+            if ($pengajuan->status !== 'dosen_ditunjuk' || !$pengajuan->sidang || 
+                !$pengajuan->sidang->tanggal_waktu_sidang || !$pengajuan->sidang->ruangan_sidang ||
+                !$pengajuan->sidang->ketua_sidang_dosen_id || !$pengajuan->sidang->sekretaris_sidang_dosen_id ||
+                !$pengajuan->sidang->anggota1_sidang_dosen_id
+                // Anggota 2 adalah nullable, jadi tidak perlu divalidasi di sini
+                ) {
+                return back()->with('error', 'Sidang belum dijadwalkan lengkap atau tidak dalam status yang tepat untuk difinalkan.');
+            }
+    
+            // Anda bisa menambahkan logika pengecekan persetujuan dosen di sini jika ada mekanisme persetujuan dosen secara aktif.
+            // Untuk saat ini, kita langsung finalkan.
+            $pengajuan->update(['status' => 'sidang_dijadwalkan_final']);
+    
+            return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                             ->with('success', 'Jadwal sidang berhasil difinalkan. Mahasiswa akan menerima notifikasi.');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+PengajuanKaprodiController{
+    // Method untuk menampilkan daftar pengajuan yang perlu ditinjau Kaprodi
+        public function index()
+        {
+            // Ambil pengajuan yang statusnya 'diverifikasi_admin' (menunggu aksi Kaprodi)
+            $pengajuansKaprodi = Pengajuan::where('status', 'diverifikasi_admin')
+                                        ->orderBy('created_at', 'desc')
+                                        ->get();
+    
+            // Ambil pengajuan yang sudah di-handle Kaprodi (misal: disetujui, ditolak, dosen ditunjuk)
+            $pengajuansSelesaiKaprodi = Pengajuan::whereIn('status', ['dosen_ditunjuk', 'ditolak_kaprodi'])
+                                                ->orderBy('created_at', 'desc')
+                                                ->get();
+    
+            // Muat relasi mahasiswa agar data nama dan NIM tersedia di view
+            $pengajuansKaprodi->load('mahasiswa');
+            $pengajuansSelesaiKaprodi->load('mahasiswa');
+    
+            return view('kaprodi.pengajuan.index', compact('pengajuansKaprodi', 'pengajuansSelesaiKaprodi'));
+        }
+    
+        // Method untuk menampilkan detail pengajuan Kaprodi
+        public function show(Pengajuan $pengajuan)
+        {
+            // PENTING: Muat relasi yang relevan untuk Kaprodi
+            // - mahasiswa: informasi mahasiswa
+            // - dokumens: dokumen yang diupload
+            // - sidang.ketuaSidang: ketua sidang yang ditunjuk admin (jika ada)
+            // - sidang.pembimbing: dosen pembimbing (jika sudah ditunjuk)
+            // - sidang.penguji1: dosen penguji 1 (jika sudah ditunjuk)
+            // - sidang.penguji2: dosen penguji 2 (jika sudah ditunjuk)
+            $pengajuan->load([
+                'mahasiswa',
+                'dokumens',
+                // Ganti nama relasi di sini sesuai dengan yang ada di model Sidang Anda
+                'sidang.ketuaSidang',
+                'sidang.sekretarisSidang',
+                'sidang.anggota1Sidang',
+                'sidang.anggota2Sidang'
+            ]);
+    
+            $dosens = Dosen::orderBy('nama')->get();
+    
+            return view('kaprodi.pengajuan.show', compact('pengajuan', 'dosens'));
+        }
+    
+        // Method untuk menyetujui pengajuan oleh Kaprodi
+        public function setujui(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan status pengajuan
+            if ($pengajuan->status !== 'diverifikasi_admin') {
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan tidak dapat disetujui pada status saat ini.');
+            }
+        
+            // Validasi input dosen disesuaikan dengan nama kolom Anda
+            $validator = Validator::make($request->all(), [
+                'ketua_sidang_dosen_id' => 'required|exists:dosens,id', // Kaprodi yang menentukan ketua sidang?
+                'sekretaris_sidang_dosen_id' => 'required|exists:dosens,id|different:ketua_sidang_dosen_id',
+                'anggota1_sidang_dosen_id' => 'required|exists:dosens,id|different:ketua_sidang_dosen_id|different:sekretaris_sidang_dosen_id',
+                'anggota2_sidang_dosen_id' => 'nullable|exists:dosens,id|different:ketua_sidang_dosen_id|different:sekretaris_sidang_dosen_id|different:anggota1_sidang_dosen_id',
+            ]);
+        
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput()->with('error_assign_dosen', true);
+            }
+        
+            // Update status pengajuan
+            $pengajuan->update(['status' => 'dosen_ditunjuk']);
+        
+            // Update data sidang dengan dosen-dosen yang ditunjuk
+            if ($pengajuan->sidang) {
+                $pengajuan->sidang->update([
+                    'ketua_sidang_dosen_id' => $request->ketua_sidang_dosen_id,
+                    'sekretaris_sidang_dosen_id' => $request->sekretaris_sidang_dosen_id,
+                    'anggota1_sidang_dosen_id' => $request->anggota1_sidang_dosen_id,
+                    'anggota2_sidang_dosen_id' => $request->anggota2_sidang_dosen_id,
+                ]);
+            } else {
+                // Fallback, jika record sidang belum ada
+                $pengajuan->sidang()->create([
+                    'ketua_sidang_dosen_id' => $request->ketua_sidang_dosen_id,
+                    'sekretaris_sidang_dosen_id' => $request->sekretaris_sidang_dosen_id,
+                    'anggota1_sidang_dosen_id' => $request->anggota1_sidang_dosen_id,
+                    'anggota2_sidang_dosen_id' => $request->anggota2_sidang_dosen_id,
+                ]);
+            }
+        
+            return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                             ->with('success', 'Pengajuan berhasil disetujui dan dosen berhasil ditunjuk.');
+        }
+    
+        // Method untuk menolak pengajuan oleh Kaprodi
+        public function tolak(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan pengajuan berstatus 'diverifikasi_admin'
+            if ($pengajuan->status !== 'diverifikasi_admin') {
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan tidak dapat ditolak pada status saat ini.');
+            }
+    
+            // Validasi alasan penolakan
+            $request->validate([
+                'alasan_penolakan_kaprodi' => 'required|string|max:500',
+            ]);
+    
+            // Ubah status pengajuan menjadi 'ditolak_kaprodi'
+            $pengajuan->update([
+                'status' => 'ditolak_kaprodi',
+                'catatan_kaprodi' => $request->alasan_penolakan_kaprodi,
+            ]);
+    
+            return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                             ->with('success', 'Pengajuan berhasil ditolak oleh Kaprodi.');
+        }
+    
+        // Method terpisah untuk menunjuk dosen (jika Kaprodi ingin menunjuk dosen tanpa langsung menyetujui)
+        // Atau ini bisa digabungkan ke method setujui seperti yang saya lakukan di atas.
+        // Jika Anda ingin Kaprodi hanya bisa menunjuk dosen setelah menyetujui, maka method ini tidak perlu.
+        // Saya telah menggabungkan penunjukan dosen ke dalam method setujui di atas.
+        // Jika Anda ingin Kaprodi bisa menunjuk dosen kapan saja setelah diverifikasi_admin,
+        // dan status pengajuan tidak berubah sampai Kaprodi benar-benar menyetujui,
+        // maka method ini bisa digunakan terpisah, dan method 'setujui' hanya akan mengubah status tanpa input dosen.
+        /*
+        public function tunjukDosen(Request $request, Pengajuan $pengajuan)
+        {
+            // Pastikan pengajuan berstatus 'diverifikasi_admin'
+            if ($pengajuan->status !== 'diverifikasi_admin') {
+                return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                                 ->with('error', 'Dosen tidak dapat ditunjuk pada status saat ini.');
+            }
+    
+            $validator = Validator::make($request->all(), [
+                'dosen_pembimbing_id' => 'required|exists:dosens,id',
+                'dosen_penguji1_id' => 'required|exists:dosens,id|different:dosen_pembimbing_id',
+                'dosen_penguji2_id' => 'nullable|exists:dosens,id|different:dosen_pembimbing_id|different:dosen_penguji1_id',
+            ]);
+    
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+    
+            if ($pengajuan->sidang) {
+                $pengajuan->sidang->update([
+                    'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
+                    'dosen_penguji1_id' => $request->dosen_penguji1_id,
+                    'dosen_penguji2_id' => $request->dosen_penguji2_id,
+                ]);
+            } else {
+                $pengajuan->sidang()->create([
+                    'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
+                    'dosen_penguji1_id' => $request->dosen_penguji1_id,
+                    'dosen_penguji2_id' => $request->dosen_penguji2_id,
+                ]);
+            }
+    
+            // Status tidak berubah menjadi 'dosen_ditunjuk' di sini jika ini terpisah dari setujui
+            return redirect()->route('kaprodi.pengajuan.show', $pengajuan->id)
+                             ->with('success', 'Dosen pembimbing dan penguji berhasil ditunjuk.');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Http/Controllers/Admin/PengajuanAdminController.php
+PengajuanAdminController{
+    // Menampilkan daftar pengajuan yang perlu diverifikasi admin
+        // Method untuk menampilkan daftar pengajuan mahasiswa yang login
+        public function index()
+        {
+            // Ambil semua pengajuan yang relevan untuk admin
+            // Anda bisa menggabungkan kriteria status atau mengurutkan sesuai kebutuhan
+            $pengajuans = Pengajuan::whereIn('status', [
+                                    'diajukan_mahasiswa', // Pastikan status ini sudah diubah sesuai pengajuan controller
+                                    'diverifikasi_admin',
+                                    'ditolak_admin',
+                                    'dosen_ditunjuk',
+                                    'ditolak_kaprodi',
+                                    'dosen_menyetujui', // Jika Anda ingin admin melihat status ini
+                                    'siap_sidang_kajur', // Jika Anda ingin admin melihat status ini
+                                    'dijadwalkan', // Jika Anda ingin admin melihat status ini
+                                    'selesai' // Jika Anda ingin admin melihat status ini
+                                ])
+                                ->with('mahasiswa') // Eager load relasi mahasiswa
+                                ->orderBy('created_at', 'desc') // Urutkan berdasarkan tanggal terbaru
+                                ->paginate(10); // Gunakan paginate untuk paginasi
+    
+            // Kirimkan hanya variabel $pengajuans ke view
+            return view('admin.pengajuan.index', compact('pengajuans'));
+        }
+    
+    // Menampilkan detail pengajuan untuk verifikasi
+        public function show(Pengajuan $pengajuan)
+        {
+            // Pastikan hanya admin yang bisa melihat pengajuan yang relevan untuk dia
+            // Jika statusnya sudah melewati admin (misal 'diverifikasi_admin' atau 'dosen_ditunjuk'), admin tetap bisa lihat tapi tidak bisa aksi
+            if ($pengajuan->status !== 'diajukan_mahasiswa' && $pengajuan->status !== 'ditolak_admin') {
+                // Admin masih bisa melihat, tapi mungkin perlu pesan/tampilan berbeda
+                // Atau Anda bisa arahkan kembali jika pengajuan sudah diproses kaprodi
+                // return redirect()->route('admin.pengajuan.index')->with('info', 'Pengajuan ini sudah diproses.');
+            }
+    
+            // Muat relasi dokumen dan sidang agar bisa ditampilkan
+            $pengajuan->load(['mahasiswa', 'dokumens', 'sidang.ketuaSidang']);
+    
+            // Kita bisa langsung menggunakan $pengajuan->dokumens di view,
+            // tidak perlu membuat variabel $dokumens terpisah jika sudah di-load.
+            // Jika Anda ingin tetap menggunakan $dokumens terpisah (sesuai view Anda),
+            // maka definisikan:
+            $dokumens = $pengajuan->dokumens;
+    
+            return view('admin.pengajuan.show', compact('pengajuan', 'dokumens')); // <-- Tambahkan 'dokumens' di sini
+        }
+    
+        // Aksi: Memverifikasi dokumen pengajuan
+        public function verify(Pengajuan $pengajuan)
+        {
+            // Pastikan hanya pengajuan berstatus 'diajukan' atau 'ditolak_admin' yang bisa diverifikasi
+            if ($pengajuan->status !== 'diajukan_mahasiswa' && $pengajuan->status !== 'ditolak_admin') {
+                return redirect()->route('admin.pengajuan.verifikasi.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan tidak dapat diverifikasi pada status saat ini.');
+            }
+    
+            // Ubah status pengajuan menjadi 'diverifikasi_admin'
+            $pengajuan->update(['status' => 'diverifikasi_admin']);
+    
+            // Redirect kembali ke halaman daftar pengajuan verifikasi admin
+            return redirect()->route('admin.pengajuan.verifikasi.index') // <--- PASTIkan ini
+                             ->with('success', 'Pengajuan berhasil diverifikasi dan menunggu aksi Kaprodi.');
+        }
+    
+        // Aksi: Menolak pengajuan
+        public function reject(Request $request, Pengajuan $pengajuan)
+        {
+            // Izinkan penolakan jika status 'diajukan_mahasiswa' atau 'ditolak_admin'
+            if ($pengajuan->status !== 'diajukan_mahasiswa' && $pengajuan->status !== 'ditolak_admin') {
+                return redirect()->route('admin.pengajuan.verifikasi.show', $pengajuan->id)
+                                 ->with('error', 'Pengajuan tidak dapat ditolak pada status saat ini.');
+            }
+        
+            $request->validate([
+                'alasan_penolakan_admin' => 'required|string|max:500', // Sesuaikan dengan nama input di form
+            ]);
+        
+            $pengajuan->update([
+                'status' => 'ditolak_admin',
+                'alasan_penolakan_admin' => $request->alasan_penolakan_admin, // Gunakan nama kolom yang benar
+            ]);
+        
+            return redirect()->route('admin.pengajuan.verifikasi.index')
+                             ->with('success', 'Pengajuan berhasil ditolak.');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// --- Akhir Konten Direktori: app/Http/Controllers ---
+
+// --- Konten dari Direktori: app/Models ---
+// FILE: app/Models/Activity.php
+Activity{
+    use HasFactory;
+    
+        protected $fillable = [
+            'user_id',
+            'activity',
+            'module',
+            'ip_address',
+            'user_agent',
+        ];
+    
+        public function user(): BelongsTo
+        {
+            return $this->belongsTo(User::class);
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Admin.php
+Admin{
+    //
+        use HasFactory;
+    
+        protected $fillable = [
+            'nama',
+            'email',
+        ];
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Dokumen.php
+Dokumen{
+    use HasFactory;
+    
+        protected $fillable = [
+            'pengajuan_id',
+            'nama_file',
+            'path_file',
+        ];
+    
+        public function pengajuan()
+        {
+            return $this->belongsTo(Pengajuan::class);
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Dosen.php
+Dosen{
+    use HasFactory, Notifiable; 
+    
+        protected $fillable = [
+            'user_id',
+            'nidn',
+            'nama', // Ini adalah kolom 'nama' di DB yang akan diisi dari 'nama_lengkap' Excel
+            'jurusan',
+            'prodi',
+            'jenis_kelamin',
+            'email',
+            'password', // Sertakan jika Anda mengisi kolom password di tabel dosens
+        ];
+    
+        public function user()
+        {
+            return $this->belongsTo(User::class);
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Kajur.php
+Kajur{
+    use HasFactory;
+    
+        protected $fillable = [
+            'nama',
+            'email',
+        ];
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Kaprodi.php
+Kaprodi{
+    use HasFactory;
+    
+        protected $fillable = [
+            'nama',
+            'email',
+        ];
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Mahasiswa.php
+Mahasiswa{
+    use HasFactory;
+    
+        protected $fillable = [
+            'user_id',
+            'nim',
+            'nama_lengkap',
+            'jurusan',
+            'prodi',
+            'jenis_kelamin',
+            'kelas',
+            'email',
+            'otp',
+            'otp_expires_at',
+        ];
+    
+        /**
+         * The attributes that should be cast.
+         *
+         * @var array<string, string>
+         */
+        protected function casts(): array
+        {
+            return [
+                'otp_expires_at' => 'datetime', // WAJIB: Pastikan ini dicasting sebagai datetime
+            ];
+        }
+    
+        // Relasi ke User
+        public function user()
+        {
+            // Asumsi: Mahasiswa memiliki satu User yang terkait.
+            // Default foreign key adalah user_id, jadi tidak perlu eksplisit kecuali berbeda.
+            return $this->belongsTo(User::class, 'user_id');
+        }
+    
+        // Relasi ke Pengajuan (jika perlu)
+        public function pengajuans()
+        {
+            return $this->hasMany(Pengajuan::class);
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Pengajuan.php
+Pengajuan{
+    use HasFactory;
+    
+        protected $fillable = [
+            'mahasiswa_id',
+            'jenis_pengajuan',
+            'judul_pengajuan', // Tambahkan jika ada kolom ini di tabel pengajuan
+            'status',
+            'alasan_penolakan_asdmin',
+            'alasan_penolakan_kaprodi',
+        ];
+    
+        // Relasi ke Mahasiswa
+        public function mahasiswa()
+        {
+            return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id', 'id');
+        }
+    
+        // Relasi ke Dokumen
+        public function dokumens()
+        {
+            return $this->hasMany(Dokumen::class);
+        }
+    
+        // Relasi ke Sidang 
+        public function sidang()
+        {
+            return $this->hasOne(Sidang::class);
+        }
+    
+        // Hapus relasi-relasi ini dari Pengajuan karena foreign key ada di model Sidang
+        /*
+        public function pembimbing()
+        {
+            return $this->belongsTo(Dosen::class, 'dosen_pembimbing_id');
+        }
+        
+        public function penguji1()
+        {
+            return $this->belongsTo(Dosen::class, 'dosen_penguji1_id');
+        }
+        
+        public function penguji2()
+        {
+            return $this->belongsTo(Dosen::class, 'dosen_penguji2_id');
+        }
+        
+        public function ketuaSidang()
+        {
+            return $this->belongsTo(Dosen::class, 'ketua_sidang_dosen_id');
+        }
+        */
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/Sidang.php
+Sidang{
+    use HasFactory;
+    
+        protected $fillable = [
+            'pengajuan_id',
+            'ketua_sidang_dosen_id',
+            'sekretaris_sidang_dosen_id', 
+            'anggota1_sidang_dosen_id',
+            'anggota2_sidang_dosen_id',
+            'tanggal_waktu_sidang',
+            'ruangan_sidang',
+            'dosen_pembimbing_id',
+            'dosen_penguji1_id', // Ini untuk pembimbing 2
+            'persetujuan_ketua_sidang',
+            'persetujuan_sekretaris_sidang',
+            'persetujuan_anggota1_sidang',
+            'persetujuan_anggota2_sidang',
+            'persetujuan_dosen_pembimbing',
+            'persetujuan_dosen_penguji1',
+            'status',
+        ];
+    
+        // --- TAMBAHKAN BAGIAN INI ---
+        protected $casts = [
+            'tanggal_waktu_sidang' => 'datetime',
+        ];
+        // --- AKHIR TAMBAHAN ---
+    
+        // Relasi ke Pengajuan
+        public function pengajuan()
+        {
+            return $this->belongsTo(Pengajuan::class);
+        }
+    
+        public function ketuaSidang()
+        {
+            return $this->belongsTo(Dosen::class, 'ketua_sidang_dosen_id');
+        }
+    
+        public function sekretarisSidang()
+        {
+            return $this->belongsTo(Dosen::class, 'sekretaris_sidang_dosen_id');
+        }
+    
+        public function anggota1Sidang()
+        {
+            return $this->belongsTo(Dosen::class, 'anggota1_sidang_dosen_id');
+        }
+    
+        public function anggota2Sidang()
+        {
+            return $this->belongsTo(Dosen::class, 'anggota2_sidang_dosen_id');
+        }
+    
+        public function dosenPembimbing()
+        {
+            return $this->belongsTo(Dosen::class, 'dosen_pembimbing_id');
+        }
+    
+        public function dosenPenguji1()
+        {
+            return $this->belongsTo(Dosen::class, 'dosen_penguji1_id');
+        }
+    
+        public function dosenPenguji2()
+        {
+            return $this->belongsTo(Dosen::class, 'dosen_penguji2_id');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: app/Models/User.php
+User{
+    use HasFactory, Notifiable;
+    
+        /**
+         * The attributes that are mass assignable.
+         *
+         * @var list<string>
+         */
+        protected $fillable = [
+            'name',
+            'email',
+            'password',
+            'role',
+        ];
+    
+        /**
+         * The attributes that should be hidden for serialization.
+         *
+         * @var list<string>
+         */
+        protected $hidden = [
+            'password',
+            'remember_token',
+        ];
+    
+        /**
+         * Get the attributes that should be cast.
+         *
+         * @return array<string, string>
+         */
+        protected function casts(): array
+        {
+            return [
+                'email_verified_at' => 'datetime',
+                'password' => 'hashed',
+            ];
+        }
+    
+        // Dapatkan mahasiswa yang terkait dengan User ini.
+        public function mahasiswa()
+        {
+            // Asumsi: Di tabel 'mahasiswas', ada kolom 'user_id' yang merupakan foreign key ke 'id' user.
+            return $this->hasOne(Mahasiswa::class, 'user_id');
+        }
+    
+        /**
+         * Dapatkan dosen yang terkait dengan User ini. (Jika ada relasi dosen)
+         */
+        public function dosen()
+        {
+            // Asumsi: Di tabel 'dosens', ada kolom 'user_id' yang merupakan foreign key ke 'id' user.
+            return $this->hasOne(Dosen::class); // Default: hasOne akan mencari 'dosen_id' di tabel users. Jika foreign key-nya 'user_id' di tabel dosens,
+                                               // Anda mungkin perlu menuliskannya secara eksplisit: return $this->hasOne(Dosen::class, 'user_id');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// --- Akhir Konten Direktori: app/Models ---
+
+// --- Konten dari Direktori: database/migrations ---
+// FILE: database/migrations/0001_01_01_000000_create_users_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('users', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('email')->unique();
+                $table->timestamp('email_verified_at')->nullable();
+                $table->string('password');
+                $table->rememberToken();
+                $table->timestamps();
+            });
+    
+            Schema::create('password_reset_tokens', function (Blueprint $table) {
+                $table->string('email')->primary();
+                $table->string('token');
+                $table->timestamp('created_at')->nullable();
+            });
+    
+            Schema::create('sessions', function (Blueprint $table) {
+                $table->string('id')->primary();
+                $table->foreignId('user_id')->nullable()->index();
+                $table->string('ip_address', 45)->nullable();
+                $table->text('user_agent')->nullable();
+                $table->longText('payload');
+                $table->integer('last_activity')->index();
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('users');
+            Schema::dropIfExists('password_reset_tokens');
+            Schema::dropIfExists('sessions');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/0001_01_01_000001_create_cache_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('cache', function (Blueprint $table) {
+                $table->string('key')->primary();
+                $table->mediumText('value');
+                $table->integer('expiration');
+            });
+    
+            Schema::create('cache_locks', function (Blueprint $table) {
+                $table->string('key')->primary();
+                $table->string('owner');
+                $table->integer('expiration');
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('cache');
+            Schema::dropIfExists('cache_locks');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/0001_01_01_000002_create_jobs_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('jobs', function (Blueprint $table) {
+                $table->id();
+                $table->string('queue')->index();
+                $table->longText('payload');
+                $table->unsignedTinyInteger('attempts');
+                $table->unsignedInteger('reserved_at')->nullable();
+                $table->unsignedInteger('available_at');
+                $table->unsignedInteger('created_at');
+            });
+    
+            Schema::create('job_batches', function (Blueprint $table) {
+                $table->string('id')->primary();
+                $table->string('name');
+                $table->integer('total_jobs');
+                $table->integer('pending_jobs');
+                $table->integer('failed_jobs');
+                $table->longText('failed_job_ids');
+                $table->mediumText('options')->nullable();
+                $table->integer('cancelled_at')->nullable();
+                $table->integer('created_at');
+                $table->integer('finished_at')->nullable();
+            });
+    
+            Schema::create('failed_jobs', function (Blueprint $table) {
+                $table->id();
+                $table->string('uuid')->unique();
+                $table->text('connection');
+                $table->text('queue');
+                $table->longText('payload');
+                $table->longText('exception');
+                $table->timestamp('failed_at')->useCurrent();
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('jobs');
+            Schema::dropIfExists('job_batches');
+            Schema::dropIfExists('failed_jobs');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170458_create_admins_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('admins', function (Blueprint $table) {
+                $table->id();
+                $table->string('nama');
+                $table->string('email')->unique();
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('admins');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170459_create_dosens_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('dosens', function (Blueprint $table) {
+                $table->id();
+                // Kolom yang ada di `desc dosens;` Anda
+                $table->foreignId('user_id')->nullable()->unique()->constrained('users')->onDelete('set null'); // Jika dosen punya user_id
+                $table->string('nidn')->unique(); // Dari desc dosens
+                $table->string('nama');
+                $table->string('jurusan');      // Dari desc dosens
+                $table->string('prodi');        // Dari desc dosens
+                $table->string('jenis_kelamin'); // Dari desc dosens
+    
+                // Kolom yang kita tambahkan
+                $table->string('email')->unique()->nullable();
+                $table->string('password');
+                $table->rememberToken();
+    
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('dosens');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170459_create_mahasiswas_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('mahasiswas', function (Blueprint $table) {
+                $table->id();
+                $table->string('nim')->unique();
+                $table->string('nama_lengkap');
+                $table->string('jurusan');
+                $table->string('prodi');
+                $table->string('jenis_kelamin');
+                $table->string('kelas');
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('mahasiswas');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170500_create_kajurs_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('kajurs', function (Blueprint $table) {
+                $table->id();
+                $table->string('nama');
+                $table->string('email')->unique();
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('kajurs');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170500_create_kaprodis_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('kaprodis', function (Blueprint $table) {
+                $table->id();
+                $table->string('nama');
+                $table->string('email')->unique();
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('kaprodis');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170501_create_pengajuans_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('pengajuans', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('mahasiswa_id')->constrained('users')->onDelete('cascade');
+                $table->string('jenis_pengajuan'); // 'TA' atau 'PKL'
+                $table->string('status'); // Misalnya, 'diajukan', 'disetujui', 'ditolak'
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('pengajuans');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170501_create_sidangs_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('sidangs', function (Blueprint $table) {
+                $table->id();
+                // Foreign key ke pengajuan yang terkait
+                $table->foreignId('pengajuan_id')->constrained('pengajuans')->onDelete('cascade');
+    
+                // Dosen Peserta Sidang (foreign keys ke tabel dosens)
+                $table->foreignId('ketua_sidang_dosen_id')->nullable()->constrained('dosens')->onDelete('set null');
+                $table->foreignId('sekretaris_sidang_dosen_id')->nullable()->constrained('dosens')->onDelete('set null');
+                $table->foreignId('anggota1_sidang_dosen_id')->nullable()->constrained('dosens')->onDelete('set null');
+                $table->foreignId('anggota2_sidang_dosen_id')->nullable()->constrained('dosens')->onDelete('set null');
+    
+                // Tanggal dan Waktu Sidang (opsional, bisa ditambahkan nanti)
+                $table->dateTime('tanggal_waktu_sidang')->nullable();
+                $table->string('ruangan_sidang')->nullable();
+    
+                $table->timestamps();
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('sidangs');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_170502_create_dokumens_table.php
+extends{
+    public function up(): void
+        {
+            Schema::create('dokumens', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('pengajuan_id')->constrained();
+                $table->string('nama_file');
+                $table->string('path_file');
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('dokumens');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_183620_create_activities_table.php
+CreateActivitiesTable{
+    /**
+         * Run the migrations.
+         *
+         * @return void
+         */
+        public function up()
+        {
+            Schema::create('activities', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('user_id')->nullable(); // Siapa yang melakukan aktivitas (jika terkait user)
+                $table->string('activity'); // Deskripsi aktivitas
+                $table->string('module')->nullable(); // Modul yang terkait dengan aktivitas
+                $table->string('ip_address')->nullable(); // Alamat IP user
+                $table->text('user_agent')->nullable(); // Informasi browser user
+                $table->timestamps();
+    
+                $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         *
+         * @return void
+         */
+        public function down()
+        {
+            Schema::dropIfExists('activities');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_195938_add_role_to_users_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('role')->default('mahasiswa'); // Tambahkan kolom 'role' dengan nilai default 'mahasiswa'
+                // Anda bisa menambahkan indeks jika sering melakukan query berdasarkan role
+                $table->index('role');
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('role'); // Hapus kolom 'role' jika migrasi di-rollback
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_19_200352_add_user_id_to_mahasiswas_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('mahasiswas', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->unique(); // Tambahkan kolom 'user_id' sebagai unsigned big integer dan unique
+                $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade'); // Buat foreign key ke tabel 'users'
+            });
+        }
+        
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('mahasiswas', function (Blueprint $table) {
+                $table->dropForeign(['user_id']); // Hapus foreign key
+                $table->dropColumn('user_id'); // Hapus kolom 'user_id'
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_21_103532_add_catatan_admin_to_pengajuans_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('pengajuans', function (Blueprint $table) {
+                $table->text('catatan_admin')->nullable()->after('status'); // Tambahkan kolom ini
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('pengajuans', function (Blueprint $table) {
+                $table->dropColumn('catatan_admin'); // Hapus kolom jika rollback
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_21_104156_add_catatan_kaprodi_to_pengajuans_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('pengajuans', function (Blueprint $table) {
+                $table->text('catatan_kaprodi')->nullable()->after('catatan_admin'); // Tambahkan kolom ini
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('pengajuans', function (Blueprint $table) {
+                $table->dropColumn('catatan_kaprodi'); // Hapus kolom jika rollback
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_21_151930_add_dosen_to_sidangs_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up()
+        {
+            Schema::table('sidangs', function (Blueprint $table) {
+                $table->foreignId('dosen_pembimbing_id')->nullable()->constrained('dosens')->onDelete('set null');
+                $table->foreignId('dosen_penguji1_id')->nullable()->constrained('dosens')->onDelete('set null');
+                $table->foreignId('dosen_penguji2_id')->nullable()->constrained('dosens')->onDelete('set null');
+                // Jika ada ketua sidang di tabel sidang
+                // $table->foreignId('ketua_sidang_dosen_id')->nullable()->constrained('dosens')->onDelete('set null');
+            });
+        }
+        
+        public function down()
+        {
+            Schema::table('sidangs', function (Blueprint $table) {
+                $table->dropForeign(['dosen_pembimbing_id']);
+                $table->dropForeign(['dosen_penguji1_id']);
+                $table->dropForeign(['dosen_penguji2_id']);
+                // $table->dropForeign(['ketua_sidang_dosen_id']);
+            
+                $table->dropColumn(['dosen_pembimbing_id', 'dosen_penguji1_id', 'dosen_penguji2_id']);
+                // $table->dropColumn(['ketua_sidang_dosen_id']);
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_22_075409_add_email_to_mahasiswas_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('mahasiswas', function (Blueprint $table) {
+                // Tambahkan kolom 'email'
+                // Penting: Pastikan kolom ini sesuai dengan kebutuhan Anda.
+                // Jika email harus unik di tabel mahasiswas, gunakan ->unique().
+                // Jika email boleh null, tambahkan ->nullable().
+                // Saya sarankan unique dan tidak nullable jika email akan digunakan sebagai identitas.
+                $table->string('email')->unique()->after('jenis_kelamin'); // Atau setelah kolom lain yang relevan
+                // Jika Anda juga menyimpan password di tabel mahasiswas, dan itu diisi,
+                // pastikan kolom password juga sudah ada atau tambahkan di sini jika belum.
+                // $table->string('password')->after('email')->nullable(); // Jika perlu
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('mahasiswas', function (Blueprint $table) {
+                // Ketika rollback, hapus kolom 'email'
+                $table->dropColumn('email');
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_05_29_080322_add_columns_to_pengajuans_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('pengajuans', function (Blueprint $table) {
+                // Menambahkan kolom jenis_pengajuan jika belum ada
+                if (!Schema::hasColumn('pengajuans', 'jenis_pengajuan')) {
+                    $table->string('jenis_pengajuan')->after('mahasiswa_id'); // Sesuaikan posisi jika perlu
+                }
+                // Menambahkan kolom status jika belum ada
+                if (!Schema::hasColumn('pengajuans', 'status')) {
+                    $table->string('status')->default('draft')->after('jenis_pengajuan'); // Default status 'draft'
+                }
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('pengajuans', function (Blueprint $table) {
+                $table->dropColumn('jenis_pengajuan');
+                $table->dropColumn('status');
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_06_02_101730_add_dosen_approval_status_to_sidangs_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('sidangs', function (Blueprint $table) {
+                // Kolom untuk melacak status persetujuan masing-masing dosen
+                $table->enum('persetujuan_ketua_sidang', ['pending', 'setuju', 'tolak'])->default('pending')->after('ketua_sidang_dosen_id');
+                $table->enum('persetujuan_sekretaris_sidang', ['pending', 'setuju', 'tolak'])->default('pending')->after('sekretaris_sidang_dosen_id');
+                $table->enum('persetujuan_anggota1_sidang', ['pending', 'setuju', 'tolak'])->default('pending')->after('anggota1_sidang_dosen_id');
+                $table->enum('persetujuan_anggota2_sidang', ['pending', 'setuju', 'tolak'])->default('pending')->after('anggota2_sidang_dosen_id');
+                // Tambahkan juga untuk dosen pembimbing jika perlu konfirmasi mereka juga
+                $table->enum('persetujuan_dosen_pembimbing', ['pending', 'setuju', 'tolak'])->default('pending')->after('dosen_pembimbing_id');
+                $table->enum('persetujuan_dosen_penguji1', ['pending', 'setuju', 'tolak'])->default('pending')->after('dosen_penguji1_id'); // Ini adalah pembimbing 2
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('sidangs', function (Blueprint $table) {
+                $table->dropColumn([
+                    'persetujuan_ketua_sidang',
+                    'persetujuan_sekretaris_sidang',
+                    'persetujuan_anggota1_sidang',
+                    'persetujuan_anggota2_sidang',
+                    'persetujuan_dosen_pembimbing',
+                    'persetujuan_dosen_penguji1',
+                ]);
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_06_02_110640_add_status_to_sidangs_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('sidangs', function (Blueprint $table) {
+                // Tambahkan kolom 'status' setelah 'pengajuan_id' atau di akhir
+                // Gunakan after() jika Anda ingin menempatkannya di posisi tertentu
+                $table->enum('status', [
+                    'belum_dijadwalkan',
+                    'dosen_ditunjuk',
+                    'dosen_menyetujui',
+                    'dijadwalkan',
+                    'ditolak_jadwal', // Jika ada dosen yang menolak jadwal atau kajur menolak
+                    'selesai',
+                    // Tambahkan status lain yang relevan di masa depan
+                ])->default('belum_dijadwalkan')->after('pengajuan_id'); // Atau setelah kolom terakhir jika tidak spesifik
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('sidangs', function (Blueprint $table) {
+                $table->dropColumn('status');
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_06_02_161127_create_notifications_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('notifications', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->string('type');
+                $table->morphs('notifiable');
+                $table->text('data');
+                $table->timestamp('read_at')->nullable();
+                $table->timestamps();
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('notifications');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_06_10_110613_create_personal_access_tokens_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('personal_access_tokens', function (Blueprint $table) {
+                $table->id();
+                $table->morphs('tokenable');
+                $table->string('name');
+                $table->string('token', 64)->unique();
+                $table->text('abilities')->nullable();
+                $table->timestamp('last_used_at')->nullable();
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamps();
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('personal_access_tokens');
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: database/migrations/2025_06_17_031203_add_otp_fields_to_mahasiswas_table.php
+extends{
+    /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::table('mahasiswas', function (Blueprint $table) {
+                $table->string('otp')->nullable()->after('email');
+                $table->timestamp('otp_expires_at')->nullable()->after('otp');
+            });
+        }
+    
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::table('mahasiswas', function (Blueprint $table) {
+                $table->dropColumn('otp');
+                $table->dropColumn('otp_expires_at');
+            });
+        }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// --- Akhir Konten Direktori: database/migrations ---
+
+// --- Konten dari Direktori: resources/views ---
+// FILE: resources/views/mahasiswa/change-password.blade.php
+for{
+    let link = item.getAttribute('href');
+                    if (link && currentPath.startsWith(link)) {
+                        removeAllActiveClasses(); // Clear previous active states
+                        item.classList.add('active');
+                    }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+const{
+    parentSubmenu.classList.add('show');
+                            // Find the parent menu item and add active class if desired
+                            const parentMenuItem = document.querySelector(`.menu-item[onclick*="${parentSubmenu.id.replace('-submenu', '')}"]`);
+                            if (parentMenuItem) {
+                                parentMenuItem.classList.add('active');
+                            }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+for{
+    // Check if the current URL exactly matches the dropdown item's href
+                    if (item.href === window.location.href) {
+                        item.classList.add('active');
+                    }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: resources/views/mahasiswa/edit_profile.blade.php
+toggle{
+    sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                // body.classList.toggle('sidebar-collapsed'); // Removed
+    
+                const icon = this.querySelector('i');
+                if (sidebar.classList.contains('collapsed')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-indent');
+                } else {
+                    icon.classList.remove('fa-indent');
+                    icon.classList.add('fa-bars');
+                }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: resources/views/layouts/main.blade.php
+if{
+    mainContent.classList.add('expanded');
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: resources/views/admin/dosen/index.blade.php
+from{
+    b.classList.remove('active');
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+to{
+    this.classList.add('active');
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// --- Akhir Konten Direktori: resources/views ---
+
+// --- Konten dari Direktori: routes ---
+// --- Akhir Konten Direktori: routes ---
+

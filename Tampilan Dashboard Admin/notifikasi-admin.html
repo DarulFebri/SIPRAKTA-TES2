@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifikasi Admin - SIPRAKTA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-100: #e6f2ff;
+            --primary-200: #b3d7ff;
+            --primary-300: #80bdff;
+            --primary-400: #4da3ff;
+            --primary-500: #1a88ff;
+            --primary-600: #0066cc;
+            --primary-700: #004d99;
+            --sidebar-color: #1e3a8a;
+            --text-color: #2d3748;
+            --light-gray: #f8fafc;
+            --white: #ffffff;
+            --success: #198754;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #0dcaf0;
+            --transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            min-height: 100vh;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideInLeft {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Layout Utama */
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, var(--sidebar-color), #172554);
+            color: var(--white);
+            padding: 20px 0;
+            height: 100vh;
+            position: fixed;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+            z-index: 100;
+            animation: slideInLeft 0.5s ease-out;
+            transition: var(--transition);
+            overflow-x: hidden;
+        }
+        
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .sidebar.collapsed .logo-img {
+            width: 40px;
+            margin: 0 auto;
+        }
+        
+        .sidebar.collapsed .menu-title,
+        .sidebar.collapsed .menu-item span,
+        .sidebar.collapsed .submenu {
+            display: none;
+        }
+        
+        .sidebar.collapsed .menu-item {
+            justify-content: center;
+            padding: 14px 0;
+            margin: 5px 0;
+        }
+        
+        .sidebar.collapsed .menu-item i {
+            margin-right: 0;
+            font-size: 20px;
+        }
+        
+        .sidebar.collapsed .submenu-item {
+            padding: 12px 0;
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .submenu-item i {
+            margin-right: 0;
+        }
+        
+        .logo-container {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: var(--transition);
+        }
+        
+        .logo-container:hover {
+            transform: translateY(-3px);
+        }
+        
+        .logo-img {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16/9;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            transition: var(--transition);
+        }
+        
+        .menu-title {
+            padding: 15px 20px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+        
+        .menu-item {
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            margin: 5px 10px;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .menu-item i {
+            margin-right: 12px;
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .menu-item:hover {
+            background-color: rgba(255,255,255,0.15);
+            transform: translateX(5px);
+        }
+        
+        .menu-item.active {
+            background: linear-gradient(90deg, var(--primary-600), var(--primary-400));
+            box-shadow: 0 4px 12px rgba(26, 136, 255, 0.3);
+        }
+        
+        .menu-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background-color: var(--white);
+        }
+        
+        .submenu {
+            padding-left: 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, opacity 0.3s ease;
+            opacity: 0;
+        }
+        
+        .submenu.show {
+            max-height: 300px;
+            opacity: 1;
+        }
+        
+        .submenu-item {
+            padding: 12px 20px 12px 50px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 6px;
+            margin: 2px 10px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+        }
+        
+        .submenu-item i {
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        
+        .submenu-item:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--primary-200);
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 30px;
+            animation: fadeIn 0.6s 0.2s both;
+            transition: var(--transition);
+        }
+        
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+        
+        /* Header with Profile Dropdown */
+        .header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--white);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            animation: fadeIn 0.6s 0.3s both;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center;
+        }
+        
+        .toggle-sidebar {
+            background: none;
+            border: none;
+            color: var(--primary-500);
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 15px;
+            transition: var(--transition);
+        }
+        
+        .toggle-sidebar:hover {
+            transform: scale(1.1);
+            color: var(--primary-700);
+        }
+        
+        /* Welcome Box */
+        .welcome-box {
+            background: linear-gradient(135deg, var(--primary-100), var(--white));
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(26, 136, 255, 0.1);
+            margin-bottom: 30px;
+            border-left: 4px solid var(--primary-500);
+            animation: fadeIn 0.6s 0.4s both;
+            transition: var(--transition);
+            position: relative;
+            z-index: 1;
+            margin-top: 10px;
+        }
+        
+        .welcome-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 24px rgba(26, 136, 255, 0.15);
+        }
+        
+        .welcome-title {
+            color: var(--primary-700);
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .welcome-box p {
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        /* Notification Page Specific Styles */
+        .notification-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-200);
+        }
+        
+        .section-title {
+            font-size: 20px;
+            color: var(--primary-700);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title i {
+            color: var(--primary-500);
+        }
+        
+        .notification-filters {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-btn.active {
+            background-color: var(--primary-500);
+            color: white;
+        }
+        
+        .filter-btn:not(.active) {
+            background-color: var(--primary-100);
+            color: var(--primary-600);
+        }
+        
+        .filter-btn:not(.active):hover {
+            background-color: var(--primary-200);
+        }
+        
+        .notification-list {
+            background-color: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .notification-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: flex-start;
+            transition: var(--transition);
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        
+        .notification-item:hover {
+            background-color: var(--primary-100);
+            padding-left: 25px;
+        }
+        
+        .notification-icon {
+            margin-right: 15px;
+            font-size: 20px;
+            margin-top: 3px;
+            flex-shrink: 0;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(26, 136, 255, 0.1);
+        }
+        
+        .notification-content {
+            flex: 1;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+        
+        .notification-message {
+            color: var(--text-color);
+            line-height: 1.5;
+            margin-bottom: 5px;
+        }
+        
+        .notification-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background-color: var(--primary-500);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .notification-item.unread {
+            background-color: rgba(26, 136, 255, 0.05);
+        }
+        
+        .notification-item.unread .notification-title {
+            font-weight: 700;
+        }
+        
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .action-btn.approve {
+            background-color: rgba(25, 135, 84, 0.1);
+            color: var(--success);
+        }
+        
+        .action-btn.reject {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+        }
+        
+        .action-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        /* User Profile - Sama persis dengan dashboard-admin */
+        .user-profile {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            border-radius: 30px;
+            transition: var(--transition);
+        }
+        
+        .user-profile:hover {
+            background-color: var(--primary-100);
+        }
+        
+        .profile-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 200px;
+            padding: 10px 0;
+            z-index: 1000;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .profile-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+            color: var(--text-color);
+            text-decoration: none;
+        }
+        
+        .dropdown-item i {
+            margin-right: 10px;
+            color: var(--primary-500);
+            width: 20px;
+            text-align: center;
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--primary-100);
+            color: var(--primary-600);
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 5px 0;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .notification-filters {
+                align-self: flex-end;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+                padding: 15px;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-profile {
+                align-self: flex-end;
+            }
+            
+            .profile-dropdown {
+                right: auto;
+                left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar" id="sidebar">
+            <div class="logo-container">
+                <img src="assets/images/sipraktawhite2.png" alt="Logo SIPRAKTA" class="logo-img">
+            </div>
+            
+            <div class="menu-title">Menu Utama</div>
+            <a href="dashboard-admin.html" style="text-decoration: none; color: inherit;">
+                <div class="menu-item tooltip">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </div>
+            </a>
+            
+            <div class="menu-item tooltip" onclick="toggleSubmenu('pengajuan', event)">
+                <i class="fas fa-file-alt"></i>
+                <span>Pengajuan Sidang</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
+            </div>
+            <div class="submenu" id="pengajuan-submenu">
+                <a href="pengajuansidangpkl.html" style="text-decoration: none; color: inherit;">
+                    <div class="submenu-item tooltip">
+                        <i class="fas fa-chevron-right"></i>
+                        <span>Sidang PKL</span>
+                    </div>
+                </a>
+                <a href="pengajuansidangta.html" style="text-decoration: none; color: inherit;">
+                    <div class="submenu-item tooltip">
+                        <i class="fas fa-chevron-right"></i>
+                        <span>Sidang TA</span>
+                    </div>
+                </a>
+            </div>
+            
+            <a href="mahasiswa.html" style="text-decoration: none; color: inherit;">
+                <div class="menu-item tooltip">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Mahasiswa</span>
+                </div>
+            </a>
+            
+            <a href="dosen.html" style="text-decoration: none; color: inherit;">
+                <div class="menu-item tooltip">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Dosen</span>
+                </div>
+            </a>
+
+            <a href="prodi.html" style="text-decoration: none; color: inherit;">
+                <div class="menu-item tooltip">
+                    <i class="fas fa-book"></i>
+                    <span>Program Studi</span>
+                </div>
+            </a>
+            
+            <div class="menu-item tooltip" onclick="toggleSubmenu('jadwal', event)">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Jadwal</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
+            </div>
+            <div class="submenu" id="jadwal-submenu">
+                <a href="jadwal-sidangpkl.html" style="text-decoration: none; color: inherit;">
+                    <div class="submenu-item tooltip">
+                        <i class="fas fa-chevron-right"></i>
+                        <span>Sidang PKL</span>
+                    </div>
+                </a>
+                <a href="jadwal-sidangta.html" style="text-decoration: none; color: inherit;">
+                    <div class="submenu-item tooltip">
+                        <i class="fas fa-chevron-right"></i>
+                        <span>Sidang TA</span>
+                    </div>
+                </a>
+            </div>
+            
+            <a href="notifikasi-admin.html" style="text-decoration: none; color: inherit;">
+                <div class="menu-item active tooltip">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifikasi</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- Header - Sama persis dengan dashboard-admin -->
+            <div class="header">
+                <div class="header-content">
+                    <div style="display: flex; align-items: center;">
+                        <button class="toggle-sidebar" id="toggleSidebar">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h1 style="font-size: 28px; color: var(--primary-700);">
+                            <i class="fas fa-bell" style="margin-right: 15px;"></i>
+                            Notifikasi Admin
+                        </h1>
+                    </div>
+                    <div class="user-profile" id="userProfile">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=1a88ff&color=fff" 
+                             style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+                        <span style="font-weight: 500;">Admin</span>
+                        <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 12px;"></i>
+                        
+                        <!-- Dropdown Menu - Sama persis dengan dashboard-admin -->
+                        <div class="profile-dropdown" id="profileDropdown">
+                            <a href="ubah-sandi-admin.html" class="dropdown-item">
+                                <i class="fas fa-key"></i>
+                                <span>Ubah Sandi</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="welcome-box">
+                <h2 class="welcome-title">
+                    <i class="fas fa-bell"></i>
+                    Notifikasi Terbaru untuk Admin
+                </h2>
+                <p>Berikut adalah daftar notifikasi terbaru dari sistem SIPRAKTA khusus untuk peran Admin. Anda dapat menyaring notifikasi berdasarkan status "Belum Dibaca" atau melihat semua notifikasi.</p>
+            </div>
+            
+            <!-- Terbaru Section -->
+            <div class="notification-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-clock"></i>
+                        Terbaru
+                    </h3>
+                    <div class="notification-filters">
+                        <button class="filter-btn active" id="allNotificationsBtn">
+                            <i class="fas fa-list"></i>
+                            Semua
+                        </button>
+                        <button class="filter-btn" id="unreadNotificationsBtn">
+                            <i class="fas fa-envelope"></i>
+                            Belum Dibaca
+                        </button>
+                    </div>
+                </div>
+                <div class="notification-list" id="recentNotifications">
+                    <!-- Pengajuan Sidang Baru -->
+                    <div class="notification-item unread">
+                        <div class="notification-icon" style="color: #3498db;">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Pengajuan Baru] Sidang PKL</div>
+                            <div class="notification-message">Hilmi Muhammad Faiz (NIM: 2311081019) telah mengajukan sidang PKL. Silakan verifikasi berkas pengajuan.</div>
+                            <div class="notification-time">15 menit yang lalu</div>
+                            <div class="notification-actions">
+                            </div>
+                        </div>
+                        <div class="notification-badge">1</div>
+                    </div>
+                    
+                    <!-- Permintaan Penjadwalan -->
+                    <div class="notification-item unread">
+                        <div class="notification-icon" style="color: #f39c12;">
+                            <i class="fas fa-calendar-plus"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Permintaan Penjadwalan]</div>
+                            <div class="notification-message">Kaprodi Teknik Informatika meminta jadwal sidang TA untuk 3 kelompok pada minggu depan.</div>
+                            <div class="notification-time">45 menit yang lalu</div>
+                            <div class="notification-actions">
+                            </div>
+                        </div>
+                        <div class="notification-badge">2</div>
+                    </div>
+                    
+                    <!-- Perubahan Data Mahasiswa -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #9b59b6;">
+                            <i class="fas fa-user-edit"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Perubahan Data Mahasiswa]</div>
+                            <div class="notification-message">Ahmad Ridwan (NIM: 2311082015) telah memperbarui data pribadinya. Silakan verifikasi perubahan.</div>
+                            <div class="notification-time">1 jam yang lalu</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pengajuan Sidang Disetujui -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #2ecc71;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Pengajuan Sidang Disetujui]</div>
+                            <div class="notification-message">Pengajuan sidang PKL untuk Fatimah Zahra (NIM: 2311081021) telah disetujui oleh Kaprodi.</div>
+                            <div class="notification-time">3 jam yang lalu</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Aktivitas Sistem -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #34495e;">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Aktivitas Sistem]</div>
+                            <div class="notification-message">Cadangan sistem berhasil dibuat pada 2025-06-19 03:00 WIB. Ukuran cadangan: 2.4 GB.</div>
+                            <div class="notification-time">5 jam yang lalu</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lebih Awal Section -->
+            <div class="notification-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-history"></i>
+                        Lebih Awal
+                    </h3>
+                    <div class="notification-filters">
+                        <button class="filter-btn active" id="allOlderNotificationsBtn">
+                            <i class="fas fa-list"></i>
+                            Semua
+                        </button>
+                        <button class="filter-btn" id="unreadOlderNotificationsBtn">
+                            <i class="fas fa-envelope"></i>
+                            Belum Dibaca
+                        </button>
+                    </div>
+                </div>
+                <div class="notification-list" id="olderNotifications">
+                    <!-- Pengajuan Ditolak -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #e74c3c;">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Pengajuan Sidang Ditolak]</div>
+                            <div class="notification-message">Pengajuan sidang TA oleh Andi Pratama (NIM: 2311081022) telah ditolak karena berkas tidak lengkap.</div>
+                            <div class="notification-time">1 hari yang lalu</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Jadwal Sidang Baru -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #9b59b6;">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Jadwal Sidang Baru]</div>
+                            <div class="notification-message">Jadwal sidang TA untuk Citra Dewi (NIM: 2311081023) telah ditetapkan pada 25 Juni 2025 pukul 13:00 WIB.</div>
+                            <div class="notification-time">2 hari yang lalu</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pembaruan Sistem -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #3498db;">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Pembaruan Sistem]</div>
+                            <div class="notification-message">Versi terbaru SIPRAKTA v2.4 telah diinstal dengan perbaikan pada modul penjadwalan.</div>
+                            <div class="notification-time">3 hari yang lalu</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pengajuan Sidang PKL -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #1abc9c;">
+                            <i class="fas fa-file-contract"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Pengajuan Sidang PKL]</div>
+                            <div class="notification-message">10 pengajuan sidang PKL baru dari mahasiswa Teknik Elektro memerlukan verifikasi admin.</div>
+                            <div class="notification-time">4 hari yang lalu</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Laporan Aktivitas -->
+                    <div class="notification-item">
+                        <div class="notification-icon" style="color: #f1c40f;">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">[Laporan Bulanan]</div>
+                            <div class="notification-message">Laporan aktivitas sistem untuk bulan Mei 2025 telah tersedia. Total sidang: 42 PKL, 38 TA.</div>
+                            <div class="notification-time">1 minggu yang lalu</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle sidebar
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        
+        toggleSidebar.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            // Change toggle icon
+            const icon = this.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-indent');
+            } else {
+                icon.classList.remove('fa-indent');
+                icon.classList.add('fa-bars');
+            }
+        });
+        
+        // Toggle submenu
+        function toggleSubmenu(menu, event) {
+            event.preventDefault();
+            const submenu = document.getElementById(`${menu}-submenu`);
+            const menuItem = document.querySelector(`.menu-item[onclick="toggleSubmenu('${menu}', event)"]`);
+            
+            // Toggle current submenu
+            submenu.classList.toggle('show');
+            
+            // Close other submenus
+            document.querySelectorAll('.submenu').forEach(item => {
+                if (item.id !== `${menu}-submenu`) {
+                    item.classList.remove('show');
+                }
+            });
+            
+            // Update active state
+            if (submenu.classList.contains('show')) {
+                menuItem.classList.add('active');
+            } else {
+                menuItem.classList.remove('active');
+            }
+        }
+        
+        // Toggle profile dropdown
+        const userProfile = document.getElementById('userProfile');
+        const profileDropdown = document.getElementById('profileDropdown');
+        
+        userProfile.addEventListener('click', function(e) {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('show');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userProfile.contains(e.target) && !profileDropdown.contains(e.target)) {
+                profileDropdown.classList.remove('show');
+            }
+        });
+        
+        // Logout function
+        function logout() {
+            if (confirm('Apakah Anda yakin ingin keluar dari sistem?')) {
+                alert('Anda berhasil logout. Mengarahkan ke halaman login...');
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // Mark notifications as read when clicked
+        document.querySelectorAll('.notification-item').forEach(item => {
+            item.addEventListener('click', function() {
+                if (this.classList.contains('unread')) {
+                    this.classList.remove('unread');
+                    const badge = this.querySelector('.notification-badge');
+                    if (badge) {
+                        badge.remove();
+                    }
+                }
+            });
+        });
+        
+        // Filter buttons functionality
+        const allNotificationsBtn = document.getElementById('allNotificationsBtn');
+        const unreadNotificationsBtn = document.getElementById('unreadNotificationsBtn');
+        const allOlderNotificationsBtn = document.getElementById('allOlderNotificationsBtn');
+        const unreadOlderNotificationsBtn = document.getElementById('unreadOlderNotificationsBtn');
+        const recentNotifications = document.getElementById('recentNotifications');
+        const olderNotifications = document.getElementById('olderNotifications');
+        
+        // Recent notifications filter
+        allNotificationsBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            unreadNotificationsBtn.classList.remove('active');
+            
+            // Show all notifications
+            const notifications = recentNotifications.querySelectorAll('.notification-item');
+            notifications.forEach(notification => {
+                notification.style.display = 'flex';
+            });
+        });
+        
+        unreadNotificationsBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            allNotificationsBtn.classList.remove('active');
+            
+            // Show only unread notifications
+            const notifications = recentNotifications.querySelectorAll('.notification-item');
+            notifications.forEach(notification => {
+                if (notification.classList.contains('unread')) {
+                    notification.style.display = 'flex';
+                } else {
+                    notification.style.display = 'none';
+                }
+            });
+        });
+        
+        // Older notifications filter
+        allOlderNotificationsBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            unreadOlderNotificationsBtn.classList.remove('active');
+            
+            // Show all notifications
+            const notifications = olderNotifications.querySelectorAll('.notification-item');
+            notifications.forEach(notification => {
+                notification.style.display = 'flex';
+            });
+        });
+        
+        unreadOlderNotificationsBtn.addEventListener('click', function() {
+            this.classList.add('active');
+            allOlderNotificationsBtn.classList.remove('active');
+            
+            // Show only unread notifications
+            const notifications = olderNotifications.querySelectorAll('.notification-item');
+            notifications.forEach(notification => {
+                if (notification.classList.contains('unread')) {
+                    notification.style.display = 'flex';
+                } else {
+                    notification.style.display = 'none';
+                }
+            });
+        });
+        
+        // Action buttons functionality
+        document.querySelectorAll('.action-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const notificationItem = this.closest('.notification-item');
+                
+                if (this.classList.contains('approve')) {
+                    alert('Tindakan disetujui!');
+                    notificationItem.style.display = 'none';
+                } else if (this.classList.contains('reject')) {
+                    alert('Tindakan ditolak!');
+                    notificationItem.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -17,6 +17,21 @@ use Illuminate\Validation\Rule; // Tambahkan ini untuk Rule::unique
 
 class MahasiswaController extends Controller
 {
+
+    public function editProfile()
+    {
+        if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+            return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+
+        $mahasiswa = $this->getLoggedInMahasiswa();
+        $programStudis = ProgramStudi::all(); // Fetch all program studies
+
+        return view('mahasiswa.edit_profile', compact('mahasiswa', 'programStudis'));
+    }
+
+    
+
     /**
      * Menampilkan form login mahasiswa.
      * Route: GET /mahasiswa/login

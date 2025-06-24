@@ -33,25 +33,31 @@ class PengajuanController extends Controller
         if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
             return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
         }
-    
+
         if (!in_array($jenis, ['ta', 'pkl'])) {
             abort(404, 'Jenis pengajuan tidak valid.');
         }
-    
-        $mahasiswa = $this->getLoggedInMahasiswa(); 
-    
+
+        $mahasiswa = $this->getLoggedInMahasiswa();
+
         $pengajuanAktif = Pengajuan::where('mahasiswa_id', $mahasiswa->id)
                                     ->whereIn('status', ['diajukan_mahasiswa', 'diverifikasi_admin', 'dosen_ditunjuk', 'sedang_diproses'])
                                     ->first();
-    
+
         if ($pengajuanAktif) {
             return redirect()->route('mahasiswa.pengajuan.index')
                              ->with('error', 'Anda sudah memiliki pengajuan yang sedang diproses. Anda tidak dapat membuat pengajuan baru sampai pengajuan sebelumnya selesai atau dibatalkan.');
         }
-    
+
         $dokumenSyarat = $this->getDokumenSyarat($jenis);
-        $dosens = Dosen::orderBy('nama')->get(); 
-        return view('mahasiswa.pengajuan.form', compact('jenis', 'dokumenSyarat', 'dosens'));
+        $dosens = Dosen::orderBy('nama')->get();
+
+        // Mengarahkan ke halaman yang sesuai berdasarkan jenis
+        if ($jenis === 'ta') {
+            return view('mahasiswa.pengajuan.create_ta', compact('jenis', 'dokumenSyarat', 'dosens'));
+        } elseif ($jenis === 'pkl') {
+            return view('mahasiswa.pengajuan.create_pkl', compact('jenis', 'dokumenSyarat', 'dosens'));
+        }
     }
 
     public function store(Request $request)

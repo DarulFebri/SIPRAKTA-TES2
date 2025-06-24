@@ -1571,7 +1571,21 @@ saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analis
 
 // FILE: app/Http/Controllers/MahasiswaController.php
 MahasiswaController{
-    /**
+    public function editProfile()
+        {
+            if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+                return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+            }
+    
+            $mahasiswa = $this->getLoggedInMahasiswa();
+            $programStudis = ProgramStudi::all(); // Fetch all program studies
+    
+            return view('mahasiswa.edit_profile', compact('mahasiswa', 'programStudis'));
+        }
+    
+        
+    
+        /**
          * Menampilkan form login mahasiswa.
          * Route: GET /mahasiswa/login
          * Name: mahasiswa.login
@@ -4031,19 +4045,28 @@ for{
 saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
 
 // FILE: resources/views/mahasiswa/edit_profile.blade.php
-toggle{
-    sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('expanded');
-                // body.classList.toggle('sidebar-collapsed'); // Removed
-    
-                const icon = this.querySelector('i');
-                if (sidebar.classList.contains('collapsed')) {
-                    icon.classList.remove('fa-bars');
-                    icon.classList.add('fa-indent');
-                } else {
-                    icon.classList.remove('fa-indent');
-                    icon.classList.add('fa-bars');
-                }
+custom{
+    { session('success') }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: resources/views/mahasiswa/login.blade.php
+dari{
+    { old('email') }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: resources/views/mahasiswa/pengajuan/form.blade.php
+custom{
+    { session('success') }
+}
+saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
+
+// FILE: resources/views/layouts/mahasiswa.blade.php
+from{
+    outline: none;
+                border-color: var(--primary-400); /* Focus color from data-mahasiswa.html */
+                box-shadow: 0 0 0 3px var(--primary-100); /* Focus shadow from data-mahasiswa.html */
 }
 saya akan memebrikan beberapa kode yang telah saya buat. jangan melakukan analisis atau memberikan kode yang sudah dimodifikasi untuk memenuhi alur diatas sebelum saya mengatakan kata "selesai sudah"
 

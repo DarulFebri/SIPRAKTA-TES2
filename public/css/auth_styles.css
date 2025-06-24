@@ -1,0 +1,353 @@
+/* public/css/auth_styles.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Poppins di _project, Segoe UI di _contoh. Sesuaikan! */
+}
+
+body {
+    background-color: #3498db; /* Solid blue background dari _contoh */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden; /* Penting untuk efek partikel */
+}
+
+/* Blurred background layer */
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1); /* Slight white overlay for blur */
+    filter: blur(10px); /* Subtle blur effect */
+    z-index: -1; /* Place behind content */
+}
+
+/* Animated book particles */
+.book-particle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    opacity: 0;
+    animation: floatParticle 15s infinite ease-in-out;
+    pointer-events: none; /* Penting agar tidak mengganggu interaksi mouse */
+    z-index: 0;
+}
+/* Mengatur animation-delay agar muncul perlahan dengan jeda 0.2 detik antar partikel */
+.book-particle:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+.book-particle:nth-child(2) { top: 20%; left: 80%; animation-delay: 0.2s; width: 15px; height: 15px; }
+.book-particle:nth-child(3) { top: 50%; left: 30%; animation-delay: 0.4s; }
+.book-particle:nth-child(4) { top: 80%; left: 60%; animation-delay: 0.6s; width: 25px; height: 25px; }
+.book-particle:nth-child(5) { top: 30%; left: 50%; animation-delay: 0.8s; }
+.book-particle:nth-child(6) { top: 70%; left: 20%; animation-delay: 1.0s; width: 18px; height: 18px; }
+.book-particle:nth-child(7) { top: 15%; left: 65%; animation-delay: 1.2s; width: 22px; height: 22px; }
+.book-particle:nth-child(8) { top: 40%; left: 90%; animation-delay: 1.4s; width: 17px; height: 17px; }
+.book-particle:nth-child(9) { top: 75%; left: 5%; animation-delay: 1.6s; width: 28px; height: 28px; }
+.book-particle:nth-child(10) { top: 5%; left: 40%; animation-delay: 1.8s; width: 19px; height: 19px; }
+
+
+@keyframes floatParticle {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; } /* Mengembalikan opacity awal ke 0 agar ada efek memudar masuk */
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+}
+
+/* --- Container Styles (General for Forms) --- */
+.login-container, .otp-container, .reset-container, .success-container {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    width: 380px; /* Lebar konsisten dari contoh */
+    padding: 30px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    animation: fadeIn 0.5s ease;
+}
+/* Khusus untuk success-container karena di reset-success_contoh.html ada sedikit perbedaan lebar/shadow */
+.success-container {
+    width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Shadow yang sedikit berbeda dari contoh */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Header & Logo Styles --- */
+.logo-container { /* Dari reset-success_contoh.html */
+    width: 100%;
+    margin-bottom: 20px;
+}
+.logo-img { /* Dari logincontoh.html dan reset-success_contoh.html */
+    width: 100px; /* Ukuran logo */
+    margin-bottom: 15px; /* Spasi bawah logo */
+}
+.header { /* Dari logincontoh.html dan otp-verification_contoh.html */
+    margin-bottom: 25px;
+}
+.header h2 {
+    color: #333; /* Warna default h2 */
+    margin-bottom: 10px;
+}
+/* Override warna h2 khusus untuk success dan reset */
+.success-container h2 {
+    color: #28a745; /* Green for success */
+}
+.reset-container h2 {
+    color: #007bff; /* Primary blue for reset password */
+}
+
+.header p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* --- Input Group Styles --- */
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: bold;
+    font-size: 14px;
+}
+.input-group input[type="email"],
+.input-group input[type="password"],
+.input-group input[type="text"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 15px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.input-group input:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Error message */
+.error-message {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
+
+/* --- Button Styles --- */
+.login-button, .action-button, .back-button { /* Gabungkan gaya button */
+    background-color: #3498db; /* Blue button */
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    width: 100%;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+    text-decoration: none; /* Untuk link sebagai button */
+    display: block; /* Agar menempati lebar penuh */
+}
+.login-button:hover, .action-button:hover, .back-button:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+/* Untuk button resend OTP */
+.resend-button {
+    background: none;
+    border: none;
+    color: #3498db;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: underline;
+    margin-top: 10px;
+    padding: 5px;
+    transition: color 0.3s ease;
+}
+.resend-button:hover {
+    color: #2980b9;
+}
+
+
+/* --- Link Styles --- */
+.forgot-password {
+    display: block;
+    margin-top: 15px;
+    color: #3498db;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s ease;
+}
+.forgot-password:hover {
+    text-decoration: underline;
+    color: #2980b9;
+}
+
+/* --- OTP specific styles --- */
+.otp-input-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+.otp-input {
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    font-size: 24px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.otp-input:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+.timer {
+    font-size: 14px;
+    color: #777;
+    margin-top: 10px;
+}
+.resend-otp { /* Ini dari _project blade, sesuaikan dengan class di _contoh */
+    margin-top: 20px;
+    font-size: 14px;
+}
+.resend-otp p {
+    margin-bottom: 5px;
+}
+.resend-otp button { /* Ubah dari button biasa jadi style resend-button */
+    background: none;
+    border: none;
+    color: #3498db;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: underline;
+    transition: color 0.3s ease;
+}
+.resend-otp button:hover {
+    color: #2980b9;
+}
+
+/* --- Success specific styles --- */
+.success-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+}
+.success-container p {
+    margin-bottom: 30px;
+    font-size: 16px;
+    line-height: 1.6;
+}
+/* Footer dari reset-success_contoh.html */
+.footer {
+    color: #7f8c8d;
+    font-size: 12px;
+    margin-top: 30px;
+    line-height: 1.5;
+}
+.footer p:first-child {
+    margin-bottom: 5px;
+}
+
+/* --- Alert messages (Laravel specific, but styled like _contoh.html if possible) --- */
+.alert {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+}
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* --- Modal & Loader Styles (dari _contoh.html) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    display: none; /* Hidden by default */
+}
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    width: 350px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+.modal-close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #aaa;
+}
+.modal-close-button:hover {
+    color: #666;
+}
+.modal-body .icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 20px;
+}
+.modal-body p {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 0;
+}
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px auto;
+    display: none; /* Hidden by default */
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

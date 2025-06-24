@@ -26,7 +26,7 @@
             </div>
         </a>
 
-        <a href="{{ route('mahasiswa.pengajuan.index') }}" class="card-link">
+        <a href="{{ route('mahasiswa.pengajuan.detail', ['jenis' => 'pkl']) }}" class="card-link">
             <div class="card clickable-card medium">
                 <div class="card-icon">
                     <i class="fas fa-file-signature"></i>
@@ -37,7 +37,7 @@
             </div>
         </a>
 
-        <a href="#" class="card-link">
+        <a href="{{ route('mahasiswa.pengajuan.detail', ['jenis' => 'ta']) }}" class="card-link">
             <div class="card clickable-card medium">
                 <div class="card-icon">
                     <i class="fas fa-file-signature"></i>
@@ -60,7 +60,7 @@
         </a>
     </div>
 
-    <div class="section-header">
+    {{--<div class="section-header">
         <div>
             <h2 class="section-title">
                 <i class="fas fa-history"></i>
@@ -83,7 +83,7 @@
                 </tr>
             </thead>
             <tbody>
-                {{-- Assuming $pengajuanTerbaru is passed from your controller --}}
+                {{-- Assuming $pengajuanTerbaru is passed from your controller 
                 @forelse($pengajuanTerbaru as $pengajuan)
                     <tr>
                         <td>{{ $pengajuan->jenis_pengajuan }}</td>
@@ -102,5 +102,5 @@
                 @endforelse
             </tbody>
         </table>
-    </div>
+    </div>--}}
 @endsection

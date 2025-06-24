@@ -26,7 +26,7 @@ Route::aliasMiddleware('kajur', \App\Http\Middleware\KajurMiddleware::class);
 
 // Rute Default
 Route::get('/', function () {
-    return view('welcome2');
+    return view('terminal');
 });
 
 // Admin Routes
@@ -147,7 +147,7 @@ Route::prefix('mahasiswa')->group(function () {
         // Pengajuan routes
         Route::prefix('pengajuan')->name('mahasiswa.pengajuan.')->group(function () {
             Route::get('/pilih', [PengajuanController::class, 'pilihJenis'])->name('pilih');
-            Route::get('/buat/{jenis}', [PengajuanController::class, 'create'])->name('create');
+            Route::get('/detail/{jenis}', [PengajuanController::class, 'create'])->name('detail');
             Route::post('/', [PengajuanController::class, 'store'])->name('store');
             Route::delete('/{pengajuan}', [PengajuanController::class, 'destroy'])->name('destroy');
             Route::get('/', [PengajuanController::class, 'index'])->name('index');

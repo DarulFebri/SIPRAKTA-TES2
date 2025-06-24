@@ -1,164 +1,136 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifikasi OTP Mahasiswa</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(to right, #e0f2f7, #bbdefb); /* Light blue gradient */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            color: #333;
-        }
-        .container {
-            background-color: #ffffff; /* White background */
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-        }
-        h2 {
-            color: #007bff; /* Primary blue */
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        p {
-            margin-bottom: 25px;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #555;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ced4da;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-            text-align: center;
-            letter-spacing: 5px; /* Untuk tampilan OTP */
-            transition: border-color 0.3s ease;
-        }
-        input[type="text"]:focus {
-            border-color: #007bff;
-            outline: none;
-        }
-        .btn-primary {
-            background-color: #007bff; /* Primary blue */
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 17px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            width: 100%;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3; /* Darker blue on hover */
-            transform: translateY(-2px);
-        }
-        .alert {
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            font-size: 15px;
-            text-align: left;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .error-message {
-            color: #dc3545; /* Red for errors */
-            font-size: 14px;
-            margin-top: 5px;
-            display: block;
-        }
-        .resend-otp {
-            margin-top: 20px;
-            font-size: 14px;
-        }
-        .resend-otp button {
-            background: none;
-            border: none;
-            color: #007bff;
-            cursor: pointer;
-            text-decoration: underline;
-            font-size: 15px;
-            font-weight: 600;
-            padding: 0;
-            transition: color 0.3s ease;
-        }
-        .resend-otp button:hover {
-            color: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
+{{-- resources/views/auth/otp_verify_project.blade.php --}}
+
+@extends('layouts.auth_layout') {{-- Menggunakan layout autentikasi baru --}}
+
+@section('title', 'Verifikasi OTP Mahasiswa - SIPRAKTA')
+
+@section('content')
+<div class="otp-container"> {{-- Ini adalah div utama dari otp-verification_contoh.html --}}
+    <div class="header">
         <h2>Verifikasi Kode OTP</h2>
         <p>Kami telah mengirimkan kode OTP ke email Anda (<strong>{{ $email ?? 'Tidak diketahui' }}</strong>). Silakan masukkan kode tersebut di bawah ini.</p>
+    </div>
 
-        @if (session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
-        @endif
+    {{-- Menampilkan pesan session dari Laravel --}}
+    @if (session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
 
-        @if (session('error'))
-            <div class="alert alert-danger">
-                {{ session('error') }}
-            </div>
-        @endif
+    @if (session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
 
-        <form method="POST" action="{{ route('mahasiswa.otp.verify') }}">
+    <form method="POST" action="{{ route('mahasiswa.otp.verify') }}">
+        @csrf
+        <input type="hidden" name="email" value="{{ $email }}">
+
+        <div class="input-group otp-input-group"> {{-- Menggunakan otp-input-group untuk layout OTP --}}
+            {{-- Buat 6 input terpisah jika Anda ingin efek input per digit --}}
+            {{-- Atau satu input tunggal jika hanya butuh 1 field --}}
+            {{-- Contoh dengan satu input: --}}
+            <input type="text" id="otp" name="otp" class="otp-input" required maxlength="6" value="{{ old('otp') }}" placeholder="______">
+            @error('otp')
+                <span class="error-message">{{ $message }}</span>
+            @enderror
+            {{-- Jika Anda ingin input per digit, ubah menjadi seperti ini: --}}
+            {{--
+            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" onkeyup="moveToNext(this, 'otp2')">
+            <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" id="otp2" onkeyup="moveToNext(this, 'otp3')">
+            ...dst
+            --}}
+        </div>
+        
+        {{-- Timer --}}
+        <div class="timer">Kode akan kedaluwarsa dalam <span id="countdown">02:00</span></div>
+
+        {{-- Tombol submit, menggunakan kelas dari otp-verification_contoh.html --}}
+        <button type="submit" class="action-button">Verifikasi OTP</button>
+    </form>
+
+    <div class="resend-otp">
+        <p>Tidak menerima kode?</p>
+        <form method="POST" action="{{ route('mahasiswa.otp.resend') }}" style="display:inline;">
             @csrf
             <input type="hidden" name="email" value="{{ $email }}">
-
-            <div class="form-group">
-                <label for="otp">Kode OTP</label>
-                <input type="text" id="otp" name="otp" required maxlength="6" value="{{ old('otp') }}">
-                @error('otp')
-                    <span class="error-message">{{ $message }}</span>
-                @enderror
-            </div>
-            <button type="submit" class="btn-primary">Verifikasi OTP</button>
+            <button type="submit" class="resend-button" id="resendOtpButton">Kirim Ulang OTP</button>
         </form>
-
-        <div class="resend-otp">
-            <p>Tidak menerima kode?
-                <form method="POST" action="{{ route('mahasiswa.otp.resend') }}" style="display:inline;">
-                    @csrf
-                    <input type="hidden" name="email" value="{{ $email }}">
-                    <button type="submit">Kirim Ulang OTP</button>
-                </form>
-            </p>
-        </div>
     </div>
-</body>
-</html>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const countdownElement = document.getElementById('countdown');
+        const resendOtpButton = document.getElementById('resendOtpButton');
+        let timeLeft = 120; // 2 minutes
+
+        function updateCountdown() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            countdownElement.textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                resendOtpButton.disabled = false; // Aktifkan tombol resend
+                resendOtpButton.style.opacity = '1';
+                resendOtpButton.style.cursor = 'pointer';
+            } else {
+                timeLeft--;
+            }
+        }
+
+        let timerInterval = setInterval(updateCountdown, 1000);
+        updateCountdown(); // Call once immediately to display initial time
+
+        resendOtpButton.disabled = true; // Non-aktifkan tombol saat pertama kali load
+        resendOtpButton.style.opacity = '0.5';
+        resendOtpButton.style.cursor = 'not-allowed';
+
+        resendOtpButton.addEventListener('click', function(e) {
+            // Mencegah form submit default jika tombol masih disabled
+            if (this.disabled) {
+                e.preventDefault();
+                return;
+            }
+
+            e.preventDefault(); // Mencegah submit form untuk sementara
+            
+            // Tampilkan loader modal (jika Anda ingin ada popup saat resend)
+            // window.showSuccessModal('Mengirim ulang kode OTP...', null); // Pesan akan diganti oleh server response
+
+            // Kirim ulang OTP menggunakan AJAX atau form submit biasa
+            const resendForm = this.closest('form');
+            if (resendForm) {
+                resendForm.submit(); // Biarkan Laravel menangani resend dan redirect/flash message
+            }
+
+            // Setelah resend, reset timer dan nonaktifkan tombol lagi
+            // Ini akan dieksekusi setelah halaman refresh atau jika AJAX berhasil
+            // Jika Anda menggunakan AJAX untuk resend, uncomment ini:
+            /*
+            timeLeft = 120;
+            resendOtpButton.disabled = true;
+            resendOtpButton.style.opacity = '0.5';
+            resendOtpButton.style.cursor = 'not-allowed';
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateCountdown, 1000);
+            updateCountdown();
+            */
+        });
+
+        // Contoh bagaimana memicu modal jika ada pesan sukses/error dari session Laravel
+        @if (session('success'))
+            window.showSuccessModal("{{ session('success') }}");
+        @endif
+        @if (session('error'))
+            window.showErrorModal("{{ session('error') }}");
+        @endif
+    });
+</script>
+@endpush

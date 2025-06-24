@@ -1,84 +1,40 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sandi Berhasil Diubah</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(to right, #e0f2f7, #bbdefb); /* Light blue gradient */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            color: #333;
-        }
-        .container {
-            background-color: #ffffff; /* White background */
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-        }
-        h2 {
-            color: #28a745; /* Green for success */
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        p {
-            margin-bottom: 30px;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-        .btn-primary {
-            background-color: #007bff; /* Primary blue */
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 17px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            text-decoration: none; /* For anchor tag */
-            display: inline-block; /* For anchor tag */
-        }
-        .btn-primary:hover {
-            background-color: #0056b3; /* Darker blue on hover */
-            transform: translateY(-2px);
-        }
-        .alert {
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            font-size: 15px;
-            text-align: left;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Sandi Berhasil Diubah!</h2>
+{{-- resources/views/auth/password_reset_success_project.blade.php --}}
 
-        @if (session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
-        @else
-            <p>Password Anda telah berhasil diubah. Silakan masuk dengan password baru Anda.</p>
-        @endif
+@extends('layouts.auth_layout') {{-- Menggunakan layout autentikasi baru --}}
 
-        <a href="{{ route('mahasiswa.login') }}" class="btn-primary">Kembali ke Halaman Login</a>
+@section('title', 'Sandi Berhasil Diubah - SIPRAKTA')
+
+@section('content')
+<div class="success-container"> {{-- Ini adalah div utama dari reset-success_contoh.html --}}
+    <div class="logo-container">
+        {{-- Pastikan path gambar benar: public/assets/images/sipraktablue2.png --}}
+        <img src="{{ asset('assets/images/sipraktablue2.png') }}" alt="Logo SIPRAKTA" class="logo-img">
     </div>
-</body>
-</html>
+    
+    {{-- Pastikan path icon benar: public/assets/icons/success-icon.png --}}
+    <img src="{{ asset('assets/icons/success-icon.png') }}" alt="Success" class="success-icon">
+    <h2>Sandi Berhasil Diubah!</h2>
+
+    <p>Password akun Anda telah berhasil diubah. Sekarang Anda bisa login menggunakan password baru Anda.</p>
+    
+    {{-- Tombol kembali ke login, menggunakan kelas dari reset-success_contoh.html --}}
+    <a href="{{ route('mahasiswa.login') }}" class="back-button">Kembali ke Halaman Login</a>
+
+    <div class="footer">
+        <p>Copyright &copy; 2024 Tim SIPRAKTA</p>
+        <p>Politeknik Negeri Padang</p>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Jika Anda ingin modal muncul saat halaman ini dimuat (misal dari redirect setelah reset)
+        @if (session('success_message'))
+            // Tampilkan modal sukses, lalu redirect ke halaman login
+            window.showSuccessModal("{{ session('success_message') }}", "{{ route('mahasiswa.login.form') }}");
+        @endif
+    });
+</script>
+@endpush

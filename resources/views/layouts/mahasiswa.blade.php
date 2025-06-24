@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIPRAKTA - @yield('title', 'Dashboard Mahasiswa')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary-100: #e6f2ff;
@@ -25,8 +25,7 @@
             --danger: #dc3545;
             --info: #0dcaf0;
             --transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-            /* Added from dashboard_contoh.html for card styling */
+    
             --card-width: 300px;
             --card-height: 200px;
             --card-icon-size: 48px;
@@ -35,14 +34,14 @@
             --card-border-radius: 12px;
             --card-gap: 25px;
         }
-
+    
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
+    
         body {
             display: flex;
             min-height: 100vh;
@@ -51,34 +50,227 @@
             transition: var(--transition);
         }
 
+        /*tambahan*/
+        .form-row {
+            display: flex; /* INI KUNCI UTAMA agar elemen di dalamnya sejajar */
+            margin-bottom: 20px;
+            align-items: center; /* Untuk mensejajarkan secara vertikal di tengah */
+        }
+
+        .form-label {
+            width: 200px; /* Memberikan lebar tetap pada label */
+            font-weight: 600;
+            color: var(--primary-700);
+            /* Tambahkan margin-right jika Anda ingin spasi antara label dan input */
+            margin-right: 15px; /* Opsional: memberikan sedikit spasi */
+        }
+
+        .form-input {
+            flex: 1; /* INI KUNCI KEDUA agar input mengambil sisa lebar yang tersedia */
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        .alertpkl {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            animation: fadeIn 0.6s 0.3s both;
+        }
+        
+        .alert-infopkl {
+            background-color: var(--primary-100);
+            color: var(--primary-700);
+            border-left: 4px solid var(--primary-500);
+        }
+
+        .form-container {
+            background-color: var(--white);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            animation: fadeIn 0.6s 0.4s both;
+        }
+
+        .form-title {
+            color: var(--primary-700);
+            margin-bottom: 25px;
+            font-size: 22px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .form-title i {
+            margin-right: 15px;
+            color: var(--primary-500);
+        }
+
+        .student-info {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            animation: fadeIn 0.6s 0.3s both;
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, var(--primary-100), var(--white));
+            border-radius: 10px;
+            padding: 15px;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--primary-500);
+            transition: var(--transition);
+        }
+
+        .document-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            animation: fadeIn 0.6s 0.5s both;
+        }
+        
+        .document-table thead tr {
+            background-color: var(--primary-600);
+            color: var(--white);
+            text-align: left;
+        }
+        
+        .document-table th,
+        .document-table td {
+            padding: 15px 20px;
+        }
+        
+        .document-table tbody tr {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .document-table tbody tr:nth-of-type(even) {
+            background-color: var(--light-gray);
+        }
+        
+        .document-table tbody tr:last-of-type {
+            border-bottom: 2px solid var(--primary-600);
+        }
+        
+        .document-table tbody tr:hover {
+            background-color: var(--primary-100);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .status-uploaded {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+        }
+        
+        .status-pending {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: var(--warning-color);
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+        
+        .btn-gray {
+            background-color: #d1d5db;
+            color: var(--text-color);
+        }
+        
+        .btn-gray:hover {
+            background-color: #b3b7bc;
+        }
+        
+        .btn-blue {
+            background: linear-gradient(45deg, var(--primary-500), var(--primary-600));
+            color: white;
+        }
+        
+        .btn-blue.loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        .btn-blue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 136, 255, 0.3);
+        }
+    
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
+    
         @keyframes slideInLeft {
             from { transform: translateX(-20px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-
+    
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.03); }
             100% { transform: scale(1); }
         }
-
+    
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
+    
         /* Layout Utama */
         .container {
             display: flex;
             min-height: 100vh;
         }
-
+    
         /* Sidebar */
         .sidebar {
             width: 280px;
@@ -93,52 +285,52 @@
             transition: var(--transition);
             overflow-x: hidden;
         }
-
+    
         .sidebar.collapsed {
             width: 80px;
         }
-
+    
         .sidebar.collapsed .logo-img {
             width: 40px;
             margin: 0 auto;
         }
-
+    
         .sidebar.collapsed .menu-title,
         .sidebar.collapsed .menu-item span,
         .sidebar.collapsed .submenu {
             display: none;
         }
-
+    
         .sidebar.collapsed .menu-item {
             justify-content: center;
             padding: 14px 0;
             margin: 5px 0;
         }
-
+    
         .sidebar.collapsed .menu-item i {
             margin-right: 0;
             font-size: 20px;
         }
-
+    
         .sidebar.collapsed .submenu-item {
             padding: 12px 0;
             justify-content: center;
         }
-
+    
         .sidebar.collapsed .submenu-item i {
             margin-right: 0;
         }
-
+    
         .logo-container {
             padding: 0 20px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             transition: var(--transition);
         }
-
+    
         .logo-container:hover {
             transform: translateY(-3px);
         }
-
+    
         .logo-img {
             width: 100%;
             height: auto;
@@ -147,7 +339,7 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
             transition: var(--transition);
         }
-
+    
         .menu-title {
             padding: 15px 20px;
             font-size: 13px;
@@ -157,7 +349,7 @@
             margin-top: 10px;
             transition: var(--transition);
         }
-
+    
         .menu-item {
             padding: 14px 20px;
             cursor: pointer;
@@ -169,24 +361,24 @@
             position: relative;
             overflow: hidden;
         }
-
+    
         .menu-item i {
             margin-right: 12px;
             font-size: 18px;
             width: 24px;
             text-align: center;
         }
-
+    
         .menu-item:hover {
             background-color: rgba(255,255,255,0.15);
             transform: translateX(5px);
         }
-
+    
         .menu-item.active {
             background: linear-gradient(90deg, var(--primary-600), var(--primary-400));
             box-shadow: 0 4px 12px rgba(26, 136, 255, 0.3);
         }
-
+    
         .menu-item.active::before {
             content: '';
             position: absolute;
@@ -196,7 +388,7 @@
             width: 4px;
             background-color: var(--white);
         }
-
+    
         .submenu {
             padding-left: 20px;
             max-height: 0;
@@ -204,12 +396,12 @@
             transition: max-height 0.4s ease-out, opacity 0.3s ease;
             opacity: 0;
         }
-
+    
         .submenu.show {
             max-height: 300px; /* Adjusted to fit more items if needed */
             opacity: 1;
         }
-
+    
         .submenu-item {
             padding: 12px 20px 12px 50px;
             cursor: pointer;
@@ -220,17 +412,17 @@
             display: flex;
             align-items: center;
         }
-
+    
         .submenu-item i {
             margin-right: 10px;
             font-size: 12px;
         }
-
+    
         .submenu-item:hover {
             background-color: rgba(255,255,255,0.1);
             color: var(--primary-200);
         }
-
+    
         /* Main Content */
         .main-content {
             flex: 1;
@@ -239,11 +431,11 @@
             animation: fadeIn 0.6s 0.2s both;
             transition: var(--transition);
         }
-
+    
         .main-content.expanded {
             margin-left: 80px;
         }
-
+    
         /* Header with Profile Dropdown */
         .header {
             position: relative;
@@ -258,14 +450,14 @@
             margin-bottom: 25px;
             animation: fadeIn 0.6s 0.3s both;
         }
-
+    
         .header-content {
             display: flex;
             justify-content: space-between;
             width: 100%;
             align-items: center;
         }
-
+    
         .toggle-sidebar {
             background: none;
             border: none;
@@ -275,12 +467,12 @@
             margin-right: 15px;
             transition: var(--transition);
         }
-
+    
         .toggle-sidebar:hover {
             transform: scale(1.1);
             color: var(--primary-700);
         }
-
+    
         /* Welcome Box */
         .welcome-box {
             background: linear-gradient(135deg, var(--primary-100), var(--white));
@@ -295,24 +487,24 @@
             z-index: 1;
             margin-top: 10px;
         }
-
+    
         .welcome-box:hover {
             transform: translateY(-3px);
             box-shadow: 0 6px 24px rgba(26, 136, 255, 0.15);
         }
-
+    
         .welcome-title {
             color: var(--primary-700);
             margin-bottom: 10px;
             font-size: 24px;
             font-weight: 700;
         }
-
+    
         .welcome-box p {
             color: var(--text-color);
             line-height: 1.6;
         }
-
+    
         /* Card Container */
         .card-container {
             display: grid;
@@ -320,7 +512,7 @@
             gap: var(--card-gap);
             margin-bottom: 30px;
         }
-
+    
         /* Card styling */
         .card {
             background-color: var(--white);
@@ -337,55 +529,55 @@
             min-height: var(--card-height);
             width: 100%;
         }
-
+    
         .card.small {
             --card-height: 150px;
             --card-icon-size: 36px;
             --card-title-size: 18px;
         }
-
+    
         .card.medium {
             --card-height: 200px;
             --card-icon-size: 48px;
             --card-title-size: 20px;
         }
-
+    
         .card.large {
             --card-height: 250px;
             --card-icon-size: 60px;
             --card-title-size: 22px;
         }
-
+    
         .card.wide {
             grid-column: span 2;
         }
-
+    
         .card:nth-child(1) { animation-delay: 0.5s; }
         .card:nth-child(2) { animation-delay: 0.6s; }
         .card:nth-child(3) { animation-delay: 0.7s; }
-
+    
         .clickable-card {
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
+    
         .clickable-card:hover {
             transform: translateY(-5px) scale(1.02);
             box-shadow: 0 8px 25px rgba(26, 136, 255, 0.2);
         }
-
+    
         .card-icon {
             font-size: var(--card-icon-size);
             color: var(--primary-500);
             margin-bottom: 20px;
             transition: all 0.3s ease;
         }
-
+    
         .clickable-card:hover .card-icon {
             transform: scale(1.1);
             color: var(--primary-600);
         }
-
+    
         .card-link {
             text-decoration: none;
             color: inherit;
@@ -393,14 +585,14 @@
             height: 100%;
             width: 100%;
         }
-
+    
         .card-title {
             color: var(--primary-600);
             font-size: var(--card-title-size);
             font-weight: 600;
             text-align: center;
         }
-
+    
         /* Profile Dropdown */
         .user-profile {
             position: relative;
@@ -412,11 +604,11 @@
             transition: var(--transition);
             z-index: 20;
         }
-
+    
         .user-profile:hover {
             background-color: var(--primary-100);
         }
-
+    
         .profile-dropdown {
             position: absolute;
             top: calc(100% + 10px);
@@ -430,11 +622,11 @@
             display: none;
             animation: fadeIn 0.3s ease;
         }
-
+    
         .profile-dropdown.show {
             display: block;
         }
-
+    
         .dropdown-item {
             padding: 10px 20px;
             display: flex;
@@ -443,30 +635,30 @@
             color: var(--text-color);
             text-decoration: none;
         }
-
+    
         .dropdown-item i {
             margin-right: 10px;
             color: var(--primary-500);
             width: 20px;
             text-align: center;
         }
-
+    
         .dropdown-item:hover {
             background-color: var(--primary-100);
             color: var(--primary-600);
         }
-
+    
         .dropdown-divider {
             height: 1px;
             background-color: #e2e8f0;
             margin: 5px 0;
         }
-
+    
         /* Tooltips */
         .tooltip {
             position: relative;
         }
-
+    
         .tooltip .tooltiptext {
             visibility: hidden;
             opacity: 0;
@@ -487,7 +679,7 @@
             white-space: nowrap;
             pointer-events: none;
         }
-
+    
         .tooltip .tooltiptext::after {
             content: "";
             position: absolute;
@@ -498,16 +690,16 @@
             border-style: solid;
             border-color: transparent #555 transparent transparent;
         }
-
+    
         .sidebar:not(.collapsed) .menu-item .tooltiptext {
             display: none;
         }
-
+    
         .tooltip:hover .tooltiptext {
             visibility: visible;
             opacity: 1;
         }
-
+    
         /* Table Styling */
         .section-header {
             display: flex;
@@ -516,17 +708,17 @@
             margin-bottom: 25px;
             animation: fadeIn 0.5s both;
         }
-
+    
         .section-title {
             font-size: 24px;
             color: var(--primary-700);
             font-weight: 600;
         }
-
+    
         .section-title i {
             margin-right: 12px;
         }
-
+    
         .table-container {
             background: var(--white);
             border-radius: var(--card-border-radius);
@@ -534,12 +726,12 @@
             overflow: hidden;
             animation: fadeIn 0.5s 0.3s both;
         }
-
+    
         .data-table {
             width: 100%;
             border-collapse: collapse;
         }
-
+    
         .data-table th {
             background-color: var(--primary-100);
             color: var(--primary-700);
@@ -548,20 +740,20 @@
             padding: 16px 20px;
             border-bottom: 2px solid var(--primary-200);
         }
-
+    
         .data-table td {
             padding: 14px 20px;
             border-bottom: 1px solid #e2e8f0;
         }
-
+    
         .data-table tr:last-child td {
             border-bottom: none;
         }
-
+    
         .data-table tr:hover {
             background-color: var(--primary-50);
         }
-
+    
         .status-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -569,22 +761,22 @@
             font-size: 12px;
             font-weight: 500;
         }
-
+    
         .status-active {
             background-color: rgba(25, 135, 84, 0.15);
             color: var(--success);
         }
-
+    
         .status-inactive {
             background-color: rgba(220, 53, 69, 0.15);
             color: var(--danger);
         }
-
+    
         .action-cell {
             display: flex;
             gap: 10px;
         }
-
+    
         .action-icon {
             width: 36px;
             height: 36px;
@@ -595,17 +787,17 @@
             cursor: pointer;
             transition: var(--transition);
         }
-
+    
         .view-icon {
             background-color: rgba(26, 136, 255, 0.15);
             color: var(--primary-600);
         }
-
+    
         .action-icon:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-
+    
         /* Floating Action Button */
         .fab {
             position: fixed;
@@ -626,13 +818,13 @@
             z-index: 5;
             animation: pulse 2s infinite;
         }
-
+    
         .fab:hover {
             transform: scale(1.1) rotate(10deg);
             box-shadow: 0 6px 25px rgba(26, 136, 255, 0.6);
             animation: none;
         }
-
+    
         /* Notification Popup */
         .notification-modal {
             display: none;
@@ -649,55 +841,59 @@
             z-index: 3000;
             animation: fadeIn 0.3s ease;
         }
-
+    
         .notification-modal.show {
             display: block;
         }
-
+    
         .notification-icon {
             font-size: 40px;
             margin-bottom: 15px;
         }
-
+    
         .notification-message {
             font-size: 18px;
             color: var(--primary-700);
             font-weight: 500;
         }
-
+    
         .notification-confirm {
             color: var(--warning);
         }
-
+    
         .notification-success {
             color: var(--success);
         }
-
+    
         /* Custom Buttons for Notification Modal */
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
+        /* These .btn styles are for specific modal buttons, not the general ones */
+        .btn.btn-gray { /* Specificity for modal buttons */
+            background-color: #d1d5db;
+            color: var(--text-color);
+            padding: 10px 20px; /* Keep consistent with general btn */
+            border-radius: 6px; /* Keep consistent with general btn */
             font-weight: 500;
             cursor: pointer;
             transition: var(--transition);
             border: none;
         }
-
-        .btn-gray {
-            background-color: #d1d5db;
-            color: var(--text-color);
-        }
-
-        .btn-gray:hover {
+    
+        .btn.btn-gray:hover {
             background-color: #b3b7bc;
         }
-
-        .btn-blue {
+    
+        .btn.btn-blue { /* Specificity for modal buttons */
             background: linear-gradient(45deg, var(--primary-500), var(--primary-600));
             color: white;
+            padding: 10px 20px; /* Keep consistent with general btn */
+            border-radius: 6px; /* Keep consistent with general btn */
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
         }
-
-        .btn-blue.loading::after {
+    
+        .btn.btn-blue.loading::after {
             content: '';
             display: inline-block;
             width: 16px;
@@ -709,65 +905,216 @@
             margin-left: 8px;
             vertical-align: middle;
         }
-
-        .btn-blue:hover {
+    
+        .btn.btn-blue:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(26, 136, 255, 0.3);
         }
-
-        /* Responsive */
+    
+    
+        /* --- Form Styling adapted and revised --- */
+    
+        .main-card { /* Corresponds to .form-container in data-mahasiswa.html */
+            background: var(--white);
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 30px;
+            margin-bottom: 30px;
+            animation: fadeIn 0.6s 0.4s both;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-top: 3px solid var(--primary-500); /* Added from data-mahasiswa.html */
+            transition: var(--transition);
+        }
+    
+        .main-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    
+        /* Form Title - matching data-mahasiswa.html's .form-title */
+        .main-card h2.form-title {
+            font-size: 20px;
+            color: var(--primary-600);
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+    
+        .main-card h2.form-title i {
+            margin-right: 10px;
+        }
+    
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* Always one column for vertical stacking */
+            gap: 20px; /* Gap between each form-group */
+        }
+    
+        .form-group {
+            /margin-bottom: 0; /* Managed by grid gap */
+        }
+    
+        /* Label styling - combined from previous and data-mahasiswa.html */
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-700); /* Darker color from data-mahasiswa.html */
+            display: flex; /* For icon alignment */
+            align-items: center;
+        }
+    
+        .form-group label i {
+            margin-right: 8px; /* Space between icon and label text */
+            font-size: 16px;
+            color: var(--primary-500); /* Color for icons in label */
+        }
+    
+        /* Input field styling */
+        .form-group .form-input { /* Using .form-input class from your blade file */
+            width: 100%;
+            padding: 12px 15px; /* Increased padding slightly for better look */
+            border: 1px solid #ddd; /* Lighter border from data-mahasiswa.html */
+            border-radius: 6px; /* Slightly smaller radius from data-mahasiswa.html */
+            font-size: 1rem;
+            color: var(--text-color);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+    
+        .form-group .form-input:focus {
+            outline: none;
+            border-color: var(--primary-400); /* Focus color from data-mahasiswa.html */
+            box-shadow: 0 0 0 3px var(--primary-100); /* Focus shadow from data-mahasiswa.html */
+        }
+    
+        /* Alert messages - ensure consistency */
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+    
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.15);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+    
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.15);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+    
+        .invalid-feedback {
+            color: var(--danger);
+            font-size: 0.875em;
+            margin-top: 5px;
+        }
+    
+        /* Form Actions and Buttons */
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px; /* Added padding-top and border-top from data-mahasiswa.html */
+            border-top: 1px dashed #ddd;
+            gap: 15px;
+        }
+    
+        .btn {
+            padding: 10px 20px; /* Consistent padding from data-mahasiswa.html */
+            border: none;
+            border-radius: 6px; /* Consistent border-radius from data-mahasiswa.html */
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px; /* Space for icon */
+            text-decoration: none;
+        }
+    
+        .btn-primary {
+            background-color: var(--primary-500); /* Solid color from data-mahasiswa.html */
+            color: white;
+            box-shadow: none; /* Remove previous shadow if you want data-mahasiswa style */
+        }
+    
+        .btn-primary:hover {
+            background-color: var(--primary-600); /* Darker hover color */
+            transform: translateY(-2px); /* Lift effect */
+            box-shadow: none; /* Keep consistent with primary */
+        }
+    
+        .btn-secondary {
+            background-color: #e2e8f0; /* Light gray from data-mahasiswa.html */
+            color: #4a5568; /* Dark text color */
+            border: none;
+        }
+    
+        .btn-secondary:hover {
+            background-color: #cbd5e0; /* Darker gray on hover */
+            transform: translateY(-2px); /* Lift effect */
+        }
+    
+    
+        /* Responsive adjustments */
         @media (max-width: 768px) {
             :root {
                 --card-width: 100%;
                 --card-gap: 15px;
             }
-
+    
             .card.wide {
                 grid-column: span 1;
             }
-
+    
             .sidebar {
                 width: 80px;
             }
-
+    
             .sidebar .menu-title,
             .sidebar .menu-item span,
             .sidebar .submenu {
                 display: none;
             }
-
+    
             .main-content {
                 margin-left: 80px;
                 padding: 15px;
             }
-
+    
             .header {
                 flex-direction: column;
                 align-items: flex-start;
                 padding: 15px;
             }
-
+    
             .header-content {
                 flex-direction: column;
                 align-items: flex-start;
             }
-
+    
             .user-profile {
                 margin-top: 15px;
                 width: 100%;
                 justify-content: space-between;
             }
-
+    
             .profile-dropdown {
                 right: auto;
                 left: 0;
                 width: 100%;
             }
-
+    
             .card-container {
                 grid-template-columns: 1fr;
             }
-
+    
             .welcome-box h1 {
                 font-size: 20px;
             }
@@ -779,6 +1126,20 @@
             }
             .card-description {
                 font-size: 0.9rem;
+            }
+            /* Form specific adjustments for small screens */
+            .form-grid {
+                grid-template-columns: 1fr; /* Stack inputs on smaller screens */
+            }
+    
+            .form-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+    
+            .btn {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
@@ -808,14 +1169,14 @@
                 </div>
             </a>
 
-            <div class="menu-item tooltip {{ Request::routeIs('mahasiswa.pengajuan.*') || Request::routeIs('mahasiswa.jadwal.pkl') ? 'active' : '' }}" onclick="toggleSubmenu('pkl', event)">
+            <div class="menu-item tooltip {{ Request::routeIs('mahasiswa.pengajuan.detail') && request('jenis') == 'pkl' || Request::routeIs('mahasiswa.jadwal.pkl') ? 'active' : '' }}" onclick="toggleSubmenu('pkl', event)">
                 <i class="fas fa-briefcase"></i>
                 <span>Sidang PKL</span>
                 <span class="tooltiptext">Sidang PKL</span>
             </div>
-            <div class="submenu {{ Request::routeIs('mahasiswa.pengajuan.*') || Request::routeIs('mahasiswa.jadwal.pkl') ? 'show' : '' }}" id="pkl-submenu">
-                <a href="{{ route('mahasiswa.pengajuan.index') }}" style="text-decoration: none; color: inherit;">
-                    <div class="submenu-item tooltip {{ Request::routeIs('mahasiswa.pengajuan.index') ? 'active' : '' }}">
+            <div class="submenu {{ Request::routeIs('mahasiswa.pengajuan.detail') && request('jenis') == 'pkl' || Request::routeIs('mahasiswa.jadwal.pkl') ? 'show' : '' }}" id="pkl-submenu">
+                <a href="{{ route('mahasiswa.pengajuan.detail', ['jenis' => 'pkl']) }}" style="text-decoration: none; color: inherit;">
+                    <div class="submenu-item tooltip {{ Request::routeIs('mahasiswa.pengajuan.detail') && request('jenis') == 'pkl' ? 'active' : '' }}">
                         <i class="fas fa-chevron-right"></i>
                         <span>Pendaftaran Sidang</span>
                         <span class="tooltiptext">Pendaftaran Sidang</span>
@@ -830,14 +1191,14 @@
                 </a>
             </div>
 
-            <div class="menu-item tooltip {{ Request::routeIs('mahasiswa.ta.*') || Request::routeIs('mahasiswa.jadwal.ta') ? 'active' : '' }}" onclick="toggleSubmenu('ta', event)">
+            <div class="menu-item tooltip {{ Request::routeIs('mahasiswa.pengajuan.detail') && request('jenis') == 'ta' || Request::routeIs('mahasiswa.jadwal.ta') ? 'active' : '' }}" onclick="toggleSubmenu('ta', event)">
                 <i class="fas fa-file-alt"></i>
                 <span>Sidang TA</span>
                 <span class="tooltiptext">Sidang TA</span>
             </div>
-            <div class="submenu {{ Request::routeIs('mahasiswa.ta.*') || Request::routeIs('mahasiswa.jadwal.ta') ? 'show' : '' }}" id="ta-submenu">
-                <a href="#" style="text-decoration: none; color: inherit;">
-                    <div class="submenu-item tooltip {{ Request::routeIs('mahasiswa.ta.index') ? 'active' : '' }}">
+            <div class="submenu {{ Request::routeIs('mahasiswa.pengajuan.detail') && request('jenis') == 'ta' || Request::routeIs('mahasiswa.jadwal.ta') ? 'show' : '' }}" id="ta-submenu">
+                <a href="{{ route('mahasiswa.pengajuan.detail', ['jenis' => 'ta']) }}" style="text-decoration: none; color: inherit;">
+                    <div class="submenu-item tooltip {{ Request::routeIs('mahasiswa.pengajuan.detail') && request('jenis') == 'ta' ? 'active' : '' }}">
                         <i class="fas fa-chevron-right"></i>
                         <span>Pendaftaran Sidang</span>
                         <span class="tooltiptext">Pendaftaran Sidang</span>
@@ -860,50 +1221,49 @@
                 </div>
             </a>
         </div>
+    </div>
+    <div class="main-content" id="mainContent">
+        <div class="header">
+            <div class="header-content">
+                <div style="display: flex; align-items: center;">
+                    <button class="toggle-sidebar" id="toggleSidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 style="font-size: 28px; color: var(--primary-700);">
+                        <i class="fas fa-tachometer-alt" style="margin-right: 15px;"></i>
+                        @yield('page_title', 'Dashboard') {{-- Dynamic page title --}}
+                    </h1>
+                </div>
+                <div class="user-profile" id="userProfile">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Pengguna') }}&background=1a88ff&color=fff"
+                         style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+                    <span style="font-weight: 500;">{{ Auth::user()->name ?? 'Pengguna' }}</span>
+                    <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 12px;"></i>
 
-        <div class="main-content" id="mainContent">
-            <div class="header">
-                <div class="header-content">
-                    <div style="display: flex; align-items: center;">
-                        <button class="toggle-sidebar" id="toggleSidebar">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <h1 style="font-size: 28px; color: var(--primary-700);">
-                            <i class="fas fa-tachometer-alt" style="margin-right: 15px;"></i>
-                            @yield('page_title', 'Dashboard') {{-- Dynamic page title --}}
-                        </h1>
-                    </div>
-                    <div class="user-profile" id="userProfile">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'Pengguna') }}&background=1a88ff&color=fff"
-                             style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
-                        <span style="font-weight: 500;">{{ Auth::user()->name ?? 'Pengguna' }}</span>
-                        <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 12px;"></i>
-
-                        <div class="profile-dropdown" id="profileDropdown">
-                            <a href="{{ route('mahasiswa.profile.edit') }}" class="dropdown-item">
-                                <i class="fas fa-user"></i>
-                                <span>Profil Saya</span>
-                            </a>
-                            <a href="{{ route('mahasiswa.password.change.form') }}" class="dropdown-item">
-                                <i class="fas fa-key"></i>
-                                <span>Ubah Sandi</span>
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a href="#" class="dropdown-item" onclick="showLogoutConfirmation()">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>Logout</span>
-                            </a>
-                            <form action="{{ route('mahasiswa.logout') }}" method="POST" style="display: none;" id="logout-form">
-                                @csrf
-                            </form>
-                        </div>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <a href="{{ route('mahasiswa.profile.edit') }}" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Profil Saya</span>
+                        </a>
+                        <a href="{{ route('mahasiswa.password.change.form') }}" class="dropdown-item">
+                            <i class="fas fa-key"></i>
+                            <span>Ubah Sandi</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" onclick="showLogoutConfirmation()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                        <form action="{{ route('mahasiswa.logout') }}" method="POST" style="display: none;" id="logout-form">
+                            @csrf
+                        </form>
                     </div>
                 </div>
             </div>
-
-            @yield('content') {{-- This is where the specific page content will be injected --}}
-
         </div>
+
+        @yield('content') {{-- This is where the specific page content will be injected --}}
+
     </div>
 
     <div class="fab">

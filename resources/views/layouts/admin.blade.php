@@ -72,6 +72,23 @@
             display: flex;
             min-height: 100vh;
         }
+
+        .alert-success-custom {
+            background-color: #d4edda; /* Light green background */
+            color: #155724; /* Dark green text */
+            border: 1px solid #c3e6cb; /* Green border */
+            border-radius: 0.25rem; /* Slightly rounded corners */
+            padding: 1rem 1.25rem; /* Padding inside the alert */
+            margin-bottom: 1rem; /* Space below the alert */
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+
+        .alert-success-custom i {
+            margin-right: 0.75rem; /* Space between icon and text */
+            font-size: 1.2rem;
+        }
         
         /* Sidebar */
         .sidebar {

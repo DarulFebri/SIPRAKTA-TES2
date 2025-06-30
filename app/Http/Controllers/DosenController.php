@@ -17,6 +17,30 @@ use Illuminate\Notifications\DatabaseNotification; // Import this!
 
 class DosenController extends Controller
 {
+
+    // Method untuk memproses file Excel
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx,csv|max:2048', // Validasi file Excel
+        ]);
+
+        try {
+            Excel::import(new DosenImport, $request->file('file')); // Proses impor
+            return redirect()->back()->with('success', 'Data dosen berhasil diimpor!');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                $errors[] = 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors());
+            }
+            return redirect()->back()->with('error', 'Gagal mengimpor data dosen. Ada kesalahan validasi: ' . implode('; ', $errors));
+        } catch (\Exception $e) {
+            // Tangani error umum lainnya
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengimpor data dosen: ' . $e->getMessage());
+        }
+    }
+
     public function loginForm()
     {
         return view('dosen.login');
@@ -350,27 +374,6 @@ class DosenController extends Controller
     public function importForm()
     {
         return view('admin.dosen.import');
-    }
-
-    public function import(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:xls,xlsx,csv|max:2048',
-        ]);
-
-        try {
-            Excel::import(new DosenImport, $request->file('file'));
-            return redirect()->back()->with('success', 'Data dosen berhasil diimpor!');
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            $failures = $e->failures();
-            $errors = [];
-            foreach ($failures as $failure) {
-                $errors[] = 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors());
-            }
-            return redirect()->back()->with('error', 'Gagal mengimpor data dosen. Ada kesalahan validasi: ' . implode('; ', $errors));
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengimpor data dosen: ' . $e->getMessage());
-        }
     }
 
     public function formResponSidang(Sidang $sidang)

@@ -13,6 +13,8 @@
             align-items: center;
             margin-bottom: 25px;
             animation: fadeIn 0.5s both;
+            flex-wrap: wrap; /* Added for responsiveness */
+            gap: 15px; /* Added for spacing between buttons */
         }
 
         .section-title {
@@ -28,7 +30,13 @@
             color: var(--primary-500);
         }
 
-        .add-button {
+        .action-buttons-group { /* New class for grouping buttons */
+            display: flex;
+            gap: 10px; /* Space between buttons */
+            flex-wrap: wrap;
+        }
+
+        .add-button, .import-button { /* Applied styles to import-button as well */
             background-color: var(--primary-500);
             color: white;
             padding: 10px 20px;
@@ -41,11 +49,20 @@
             gap: 8px;
         }
 
-        .add-button:hover {
+        .add-button:hover, .import-button:hover {
             background-color: var(--primary-600);
             transform: translateY(-2px);
             box-shadow: 0 4px 10px rgba(26, 136, 255, 0.2);
         }
+
+        .import-button {
+            background-color: #28a745; /* Example green color for import */
+        }
+
+        .import-button:hover {
+            background-color: #218838;
+        }
+
 
         .search-bar {
             display: flex;
@@ -222,11 +239,17 @@
                 align-items: flex-start;
             }
 
-            .add-button {
+            .action-buttons-group { /* Ensure buttons stack on smaller screens */
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .add-button, .import-button {
                 width: 100%;
                 justify-content: center;
-                margin-top: 15px;
+                margin-top: 0; /* Reset margin from previous .add-button rule */
             }
+
 
             .search-bar {
                 width: 100%;
@@ -239,9 +262,14 @@
 @section('content')
     <div class="section-header">
         <h2 class="section-title"><i class="fas fa-users-cog"></i> Manajemen Dosen</h2>
-        <a href="{{ route('admin.dosen.create') }}" class="add-button">
-            <i class="fas fa-plus"></i> Tambah Dosen
-        </a>
+        <div class="action-buttons-group"> {{-- New div to group buttons --}}
+            <a href="{{ route('admin.dosen.import.form') }}" class="import-button">
+                <i class="fas fa-file-excel"></i> Impor Dosen
+            </a>
+            <a href="{{ route('admin.dosen.create') }}" class="add-button">
+                <i class="fas fa-plus"></i> Tambah Dosen
+            </a>
+        </div>
     </div>
 
     <div class="search-bar">

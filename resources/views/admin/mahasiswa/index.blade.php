@@ -433,15 +433,6 @@
         </div>
     </div>
 
-    <!-- Search Bar -->
-    <div class="search-bar">
-        <input type="text" placeholder="Cari mahasiswa (NIM, nama, prodi)">
-        <button class="search-button">
-            <i class="fas fa-search"></i>
-        </button>
-    </div>
-
-    <!-- status -->
     <div class="stats-grid">
         <div class="stats-card" style="animation-delay: 0.1s;">
             <div class="stats-icon icon-blue">
@@ -452,7 +443,7 @@
                 <p>Total Mahasiswa</p>
             </div>
         </div>
-        
+
         <div class="stats-card" style="animation-delay: 0.2s;">
             <div class="stats-icon icon-green">
                 <i class="fas fa-user-check"></i>
@@ -462,7 +453,7 @@
                 <p>Mahasiswa Aktif</p>
             </div>
         </div>
-        
+
         <div class="stats-card" style="animation-delay: 0.3s;">
             <div class="stats-icon icon-orange">
                 <i class="fas fa-user-clock"></i>
@@ -472,7 +463,7 @@
                 <p>Sedang PKL</p>
             </div>
         </div>
-        
+
         <div class="stats-card" style="animation-delay: 0.4s;">
             <div class="stats-icon icon-red">
                 <i class="fas fa-user-graduate"></i>
@@ -483,8 +474,6 @@
             </div>
         </div>
     </div>
-
-
 
     <div class="main-card">
         {{-- Pesan sukses --}}
@@ -513,6 +502,15 @@
             </div>
         </div>
 
+        <form action="{{ route('admin.mahasiswa.index') }}" method="GET">
+            <div class="search-bar" style="margin-bottom: 20px;">
+                <input type="text" name="search" placeholder="Cari mahasiswa (NIM, nama, prodi)" value="{{ request('search') }}">
+                <button type="submit" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+
         <div class="table-container">
             <table class="data-table">
                 <thead>
@@ -536,13 +534,11 @@
                             <td>{{ $mahasiswa->jenis_kelamin }}</td>
                             <td>{{ $mahasiswa->kelas }}</td>
                             <td>
-                                {{-- Hapus tag <a> di sini, atau biarkan jika ada tombol lain di td ini --}}
-                                    <a href="{{ route('admin.mahasiswa.show', $mahasiswa->id) }}" class="action-icon view-icon" title="Detail">
-                                        <div class="action-icon view-icon">
-                                            <i class="fas fa-eye"></i>
-                                        </div>
-                                    </a>
-                                {{-- Jika ada tombol lain (edit/delete) di td ini, mereka akan tetap berfungsi secara terpisah --}}
+                                <a href="{{ route('admin.mahasiswa.show', $mahasiswa->id) }}" class="action-icon view-icon" title="Detail">
+                                    <div class="action-icon view-icon">
+                                        <i class="fas fa-eye"></i>
+                                    </div>
+                                </a>
                             </td>
                         </tr>
                     @endforeach
@@ -554,15 +550,4 @@
 
 @push('scripts')
     {{-- Anda bisa menambahkan skrip JavaScript khusus di sini jika diperlukan --}}
-    <script>
-        // Contoh script JavaScript (opsional)
-        // const deleteButtons = document.querySelectorAll('.btn-danger');
-        // deleteButtons.forEach(button => {
-        //     button.addEventListener('click', function(event) {
-        //         if (!confirm('Apakah Anda yakin ingin menghapus mahasiswa ini?')) {
-        //             event.preventDefault();
-        //         }
-        //     });
-        // });
-    </script>
 @endpush

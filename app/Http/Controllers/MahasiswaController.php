@@ -18,6 +18,31 @@ use Illuminate\Validation\Rule; // Tambahkan ini untuk Rule::unique
 class MahasiswaController extends Controller
 {
 
+    public function index(Request $request)
+    {
+        // Start with a base query for Mahasiswa
+        $query = Mahasiswa::query();
+
+        // Check if a search term is present in the request
+        if ($request->has('search') && $request->search != '') {
+            $searchTerm = $request->search;
+
+            // Apply search filter
+            // We use `where` for the first condition and `orWhere` for subsequent conditions
+            // to search across multiple columns.
+            $query->where('nim', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('nama_lengkap', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('prodi', 'like', '%' . $searchTerm . '%');
+            // You can add more `orWhere` clauses if you want to search other fields like 'jurusan', 'kelas', etc.
+        }
+
+        // Get the filtered (or unfiltered) students
+        $mahasiswas = $query->get(); // If you have many students, consider using ->paginate(10) instead of ->get()
+
+        // Pass the students data to the view
+        return view('admin.mahasiswa.index', compact('mahasiswas')); // Adjust view path if necessary
+    }
+
     public function editProfile()
     {
         if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {

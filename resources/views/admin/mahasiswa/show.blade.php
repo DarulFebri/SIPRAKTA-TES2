@@ -1,4 +1,3 @@
-// show.blade.php
 @extends('layouts.admin')
 
 @section('title', 'Detail Mahasiswa')

@@ -4,19 +4,48 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Pengajuan; // Ini boleh di sini jika dipakai di dashboard Mahasiswa
+use App\Models\Dosen;     // Ini boleh di sini jika dipakai di dashboard Mahasiswa
+use App\Models\Mahasiswa; // Ini boleh di sini jika dipakai di dashboard Mahasiswa
+use App\Imports\MahasiswaImport;
+use App\Exports\MahasiswaExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OtpMail;
-use App\Models\Mahasiswa; // Pastikan model Mahasiswa diimpor
 use App\Models\User;     // Pastikan model User diimpor
-use App\Models\Pengajuan; // Diperlukan jika Anda menggunakan model Pengajuan di dashboard
 use Illuminate\Support\Facades\Log; // Add this line at the top
 use Illuminate\Validation\Rule; // Tambahkan ini untuk Rule::unique
 
 class MahasiswaController extends Controller
 {
+    // Method untuk memproses file Excel mahasiswa
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx,csv|max:2048', // Validasi file Excel
+        ]);
+
+        try {
+            Excel::import(new MahasiswaImport, $request->file('file')); // Proses impor
+            return redirect()->back()->with('success', 'Data mahasiswa berhasil diimpor!');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                // Ambil header kolom yang menyebabkan kegagalan
+                $attribute = $failure->attribute();
+                $errorMessage = implode(', ', $failure->errors());
+                $errors[] = 'Baris ' . $failure->row() . ' (Kolom: ' . $attribute . '): ' . $errorMessage;
+            }
+            return redirect()->back()->with('error', 'Gagal mengimpor data mahasiswa. Ada kesalahan validasi: <ul><li>' . implode('</li><li>', $errors) . '</li></ul>');
+        } catch (\Exception $e) {
+            Log::error('Kesalahan impor mahasiswa umum: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengimpor data mahasiswa: ' . $e->getMessage());
+        }
+    }
 
     public function index(Request $request)
     {
@@ -544,31 +573,6 @@ class MahasiswaController extends Controller
     {
         // View untuk form import
         return view('admin.mahasiswa.import');
-    }
-
-    public function import(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:xls,xlsx,csv|max:2048', // Validasi file Excel/CSV
-        ]);
-
-        try {
-            // Uncomment baris ini jika Anda menggunakan Maatwebsite Excel
-            // Excel::import(new MahasiswaImport, $request->file('file'));
-            return redirect()->back()->with('success', 'Data mahasiswa berhasil diimpor!');
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            $failures = $e->failures();
-            $errors = [];
-            foreach ($failures as $failure) {
-                $attribute = $failure->attribute();
-                $errorMessage = implode(', ', $failure->errors());
-                $errors[] = 'Baris ' . $failure->row() . ' (Kolom: ' . $attribute . '): ' . $errorMessage;
-            }
-            return redirect()->back()->with('error', 'Gagal mengimpor data mahasiswa. Ada kesalahan validasi: <ul><li>' . implode('</li><li>', $errors) . '</li></ul>');
-        } catch (\Exception $e) {
-            \Log::error('Kesalahan impor mahasiswa umum: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengimpor data mahasiswa: ' . $e->getMessage());
-        }
     }
 
     public function export()

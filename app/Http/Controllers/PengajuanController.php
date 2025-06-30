@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Dosen;
 use App\Models\Mahasiswa;
 use Illuminate\Validation\Rule;
+use Throwable; // Import Throwable untuk menangkap semua jenis error/exception
 
 class PengajuanController extends Controller
 {
@@ -50,19 +51,20 @@ class PengajuanController extends Controller
         }
 
         $dokumenSyarat = $this->getDokumenSyarat($jenis);
-        $dosens = Dosen::orderBy('nama')->get();
+        $dosens = Dosen::orderBy('nama')->get(); // Mengambil semua dosen yang diurutkan berdasarkan nama
 
-        // Mengarahkan ke halaman yang sesuai berdasarkan jenis
-        if ($jenis === 'ta') {
-            return view('mahasiswa.pengajuan.create_ta', compact('jenis', 'dokumenSyarat', 'dosens'));
-        } elseif ($jenis === 'pkl') {
-            return view('mahasiswa.pengajuan.create_pkl', compact('jenis', 'dokumenSyarat', 'dosens'));
-        }
+        // Buat instance Pengajuan baru (kosong)
+        $pengajuan = new Pengajuan(['jenis_pengajuan' => $jenis, 'mahasiswa_id' => $mahasiswa->id]);
+
+        // Karena ini pengajuan baru, tidak ada dokumen terupload sebelumnya
+        $dokumenTerupload = collect();
+
+        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'mahasiswa', 'jenis', 'dokumenSyarat', 'dosens', 'dokumenTerupload'));
     }
 
     public function store(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'mahasiswa') { 
+        if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
             return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
@@ -73,68 +75,135 @@ class PengajuanController extends Controller
                                     ->first();
 
         if ($pengajuanAktif) {
+            if ($request->input('action') === 'draft_and_upload') {
+                 return response()->json(['success' => false, 'message' => 'Anda sudah memiliki pengajuan yang sedang diproses. Dokumen tidak dapat diunggah.'], 409);
+            }
             return redirect()->route('mahasiswa.pengajuan.index')
                              ->with('error', 'Anda sudah memiliki pengajuan yang sedang diproses. Anda tidak dapat membuat pengajuan baru sampai pengajuan sebelumnya selesai atau dibatalkan.');
         }
 
         $status = $request->input('action') === 'draft' ? 'draft' : 'diajukan_mahasiswa';
 
+        // Base validation rules
         $validationRules = [
             'jenis_pengajuan' => 'required|in:pkl,ta',
-            'dosen_pembimbing1_id' => $status === 'diajukan_mahasiswa' ? 'required|exists:dosens,id' : 'nullable|exists:dosens,id',
-            'dosen_pembimbing2_id' => 'nullable|exists:dosens,id|different:dosen_pembimbing1_id', 
-            // Tidak ada validasi untuk ketua_sidang_dosen_id di sini karena mahasiswa tidak boleh mengaturnya saat membuat baru atau mengedit
-            // Ini akan diatur oleh admin
+            'judul_pengajuan' => 'nullable|string|max:255',
+            'dosen_pembimbing_id' => $status === 'diajukan_mahasiswa' ? 'required|exists:dosens,id' : 'nullable|exists:dosens,id',
         ];
 
-        $dokumenSyaratList = $this->getDokumenSyarat($request->jenis_pengajuan);
+        // Specific rules for TA or PKL
+        if ($request->jenis_pengajuan === 'ta') {
+            $validationRules['dosen_penguji1_id'] = ($status === 'diajukan_mahasiswa' ? 'required' : 'nullable') . '|exists:dosens,id|different:dosen_pembimbing_id';
+        } elseif ($request->jenis_pengajuan === 'pkl') {
+            // Dosen Penguji 1 (Dosen Pembimbing 2) is not required for PKL
+            $validationRules['dosen_penguji1_id'] = 'nullable|exists:dosens,id|different:dosen_pembimbing_id';
+        }
 
-        foreach ($dokumenSyaratList as $key => $namaDokumen) {
-            $validationRules["dokumen.{$key}"] = ($status === 'diajukan_mahasiswa') ? 'required|file|mimes:pdf,jpg,jpeg,png|max:2048' : 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048';
+
+        // Handle the new 'draft_and_upload' action
+        if ($request->input('action') === 'draft_and_upload') {
+            $status = 'draft'; // Force status to draft for auto-drafting
+            $validationRules['document_file'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:2048';
+            $validationRules['document_name_key'] = 'required|string';
+            // For draft_and_upload, dosen_pembimbing_id is required from the start
+            $validationRules['dosen_pembimbing_id'] = 'required|exists:dosens,id';
+            // Re-apply dosen_penguji1_id rule based on jenis_pengajuan for draft_and_upload
+            if ($request->jenis_pengajuan === 'ta') {
+                $validationRules['dosen_penguji1_id'] = 'required|exists:dosens,id|different:dosen_pembimbing_id';
+            } elseif ($request->jenis_pengajuan === 'pkl') {
+                $validationRules['dosen_penguji1_id'] = 'nullable|exists:dosens,id|different:dosen_pembimbing_id';
+            }
+        } else { // Existing logic for regular form submission with multiple files
+            $dokumenSyaratList = $this->getDokumenSyarat($request->jenis_pengajuan);
+            foreach ($dokumenSyaratList as $key => $namaDokumen) {
+                $validationRules["dokumen_{$key}"] = ($status === 'diajukan_mahasiswa') ? 'required|file|mimes:pdf,jpg,jpeg,png|max:2048' : 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048';
+            }
         }
 
         $validator = Validator::make($request->all(), $validationRules);
 
         if ($validator->fails()) {
+            if ($request->input('action') === 'draft_and_upload') {
+                return response()->json(['success' => false, 'message' => 'Validasi gagal: ' . $validator->errors()->first()], 422);
+            }
             return back()->withErrors($validator)->withInput();
         }
 
-        $pengajuan = Pengajuan::create([
-            'mahasiswa_id' => $mahasiswa->id,
-            'jenis_pengajuan' => $request->jenis_pengajuan,
-            'status' => $status,
-        ]);
+        try {
+            $pengajuan = Pengajuan::create([
+                'mahasiswa_id' => $mahasiswa->id,
+                'jenis_pengajuan' => $request->jenis_pengajuan,
+                'judul_pengajuan' => $request->judul_pengajuan,
+                'status' => $status,
+            ]);
 
-        // Buat entri sidang dengan dosen pembimbing yang dipilih mahasiswa
-        $pengajuan->sidang()->create([
-            'dosen_pembimbing_id' => $request->dosen_pembimbing1_id,
-            'dosen_penguji1_id' => $request->dosen_pembimbing2_id, // Ini adalah Dosen Pembimbing 2
-            'status' => 'belum_dijadwalkan', 
-            // Ketua sidang, sekretaris, anggota, tanggal_waktu_sidang, ruangan_sidang
-            // tidak diisi oleh mahasiswa saat membuat/mengedit, diisi oleh admin/proses lain.
-        ]);
+            $pengajuan->sidang()->create([
+                'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
+                // If dosen_penguji1_id is not present (e.g., PKL), it will be null, which is allowed by nullable in fillable
+                'dosen_penguji1_id' => $request->dosen_penguji1_id,
+                'status' => 'belum_dijadwalkan',
+            ]);
 
-        // Upload dan simpan dokumen
-        if ($request->has('dokumen')) {
-            foreach ($request->file('dokumen') as $nama_dokumen_key => $file) {
-                if (array_key_exists($nama_dokumen_key, $dokumenSyaratList)) {
-                    $originalFileName = Str::slug($dokumenSyaratList[$nama_dokumen_key]) . '_' . time() . '.' . $file->getClientOriginalExtension();
+            // Handle document upload for 'draft_and_upload' action
+            if ($request->input('action') === 'draft_and_upload') {
+                // Ambil key yang sebenarnya dari document_name_key
+                $actualDocumentKey = Str::after($request->input('document_name_key'), 'dokumen_');
+                $dokumenSyaratList = $this->getDokumenSyarat($pengajuan->jenis_pengajuan);
+                $namaDokumen = $dokumenSyaratList[$actualDocumentKey] ?? null; // Gunakan actualDocumentKey di sini
+
+                if ($namaDokumen && $request->hasFile('document_file')) {
+                    $file = $request->file('document_file');
+                    $originalFileName = Str::slug($namaDokumen) . '_' . time() . '.' . $file->getClientOriginalExtension();
                     $path = $file->storeAs('dokumen_pengajuan/' . $pengajuan->id, $originalFileName, 'public');
 
                     Dokumen::create([
                         'pengajuan_id' => $pengajuan->id,
-                        'nama_file' => $dokumenSyaratList[$nama_dokumen_key],
+                        'nama_file' => $namaDokumen,
                         'path_file' => $path,
-                        'status' => 'diajukan_mahasiswa',
+                        'status' => 'diajukan_mahasiswa', // Status dokumen diatur sebagai diajukan_mahasiswa
                     ]);
                 }
-            }
-        }
+                return response()->json(['success' => true, 'message' => 'Pengajuan draft berhasil dibuat dan dokumen diunggah.', 'redirect_url' => route('mahasiswa.pengajuan.edit', $pengajuan->id)]);
 
-        if ($status === 'draft') {
-            return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil disimpan sebagai draft.');
-        } else {
-            return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil diajukan_mahasiswa dan akan segera diverifikasi!');
+            } else { // Existing logic for regular form submission with multiple files
+                $dokumenSyaratList = $this->getDokumenSyarat($request->jenis_pengajuan); // Ensure dokumenSyaratList is defined
+                foreach ($dokumenSyaratList as $key => $namaDokumen) {
+                    $fieldName = 'dokumen_' . $key;
+                    if ($request->hasFile($fieldName)) {
+                        $file = $request->file($fieldName);
+                        $namaFileSyarat = $namaDokumen;
+
+                        $existingDokumen = Dokumen::where('pengajuan_id', $pengajuan->id)
+                                                  ->where('nama_file', $namaFileSyarat)
+                                                  ->first();
+
+                        if ($existingDokumen) {
+                            Storage::disk('public')->delete($existingDokumen->path_file);
+                            $existingDokumen->update(['path_file' => $path, 'status' => 'diajukan_mahasiswa']);
+                        } else {
+                            Dokumen::create([
+                                'pengajuan_id' => $pengajuan->id,
+                                'nama_file' => $namaFileSyarat,
+                                'path_file' => $path,
+                                'status' => 'diajukan_mahasiswa',
+                            ]);
+                        }
+                    }
+                }
+
+                if ($status === 'draft') {
+                    return redirect()->route('mahasiswa.pengajuan.edit', $pengajuan->id)->with('success', 'Pengajuan berhasil disimpan sebagai draft.');
+                } else {
+                    return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil diajukan dan akan segera diverifikasi!');
+                }
+            }
+        } catch (Throwable $e) {
+            // Log the error for debugging
+            \Log::error('Error in PengajuanController@store: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            if ($request->input('action') === 'draft_and_upload') {
+                return response()->json(['success' => false, 'message' => 'Terjadi kesalahan server saat memproses pengajuan: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Terjadi kesalahan server saat memproses pengajuan: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -160,7 +229,18 @@ class PengajuanController extends Controller
             'sidang.dosenPenguji1',   // Load dosen pembimbing 2 (yang disimpan di dosen_penguji1_id)
         ]);
 
-        return view('mahasiswa.pengajuan.show', compact('pengajuan'));
+        $dokumenSyarat = $this->getDokumenSyarat($pengajuan->jenis_pengajuan);
+        $dokumenTerupload = $pengajuan->dokumens->keyBy('nama_file');
+        $dosens = Dosen::orderBy('nama')->get(); // Mengambil semua dosen
+
+        // Menentukan view berdasarkan jenis pengajuan
+        if ($pengajuan->jenis_pengajuan === 'ta') {
+            return view('mahasiswa.pengajuan.show_ta', compact('pengajuan', 'mahasiswa', 'dokumenSyarat', 'dokumenTerupload', 'dosens'));
+        } elseif ($pengajuan->jenis_pengajuan === 'pkl') {
+            return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'mahasiswa', 'dokumenSyarat', 'dokumenTerupload', 'dosens'));
+        }
+
+        return view('mahasiswa.pengajuan.show', compact('pengajuan', 'mahasiswa', 'dokumenSyarat', 'dokumenTerupload', 'dosens'));
     }
 
     public function simpanSebagaiDraft(Request $request, Pengajuan $pengajuan)
@@ -176,7 +256,7 @@ class PengajuanController extends Controller
 
         $pengajuan->update(['status' => 'draft']);
 
-        return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil diperbarui sebagai draft.');
+        return redirect()->route('mahasiswa.pengajuan.edit', $pengajuan->id)->with('success', 'Pengajuan berhasil diperbarui sebagai draft.');
     }
 
     public function edit(Pengajuan $pengajuan)
@@ -192,7 +272,7 @@ class PengajuanController extends Controller
 
         if ($pengajuan->status !== 'draft' && !in_array($pengajuan->status, ['ditolak_admin', 'ditolak_kaprodi'])) {
             return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)
-                             ->with('error', 'Pengajuan sudah diajukan_mahasiswa dan tidak bisa diedit.');
+                             ->with('error', 'Pengajuan sudah diajukan dan tidak bisa diedit.');
         }
 
         $jenis = $pengajuan->jenis_pengajuan;
@@ -200,7 +280,13 @@ class PengajuanController extends Controller
         $dokumenTerupload = $pengajuan->dokumens->keyBy('nama_file');
         $dosens = Dosen::orderBy('nama')->get();
 
-        return view('mahasiswa.pengajuan.edit', compact('pengajuan', 'jenis', 'dokumenSyarat', 'dokumenTerupload', 'dosens'));
+        // Menentukan view berdasarkan jenis pengajuan
+        if ($jenis === 'ta') {
+            return view('mahasiswa.pengajuan.edit_ta', compact('pengajuan', 'jenis', 'dokumenSyarat', 'dokumenTerupload', 'dosens', 'mahasiswa'));
+        } elseif ($jenis === 'pkl') {
+            return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'jenis', 'dokumenSyarat', 'dokumenTerupload', 'dosens', 'mahasiswa'));
+        }
+        return view('mahasiswa.pengajuan.edit', compact('pengajuan', 'jenis', 'dokumenSyarat', 'dokumenTerupload', 'dosens', 'mahasiswa'));
     }
 
     public function update(Request $request, Pengajuan $pengajuan)
@@ -209,106 +295,179 @@ class PengajuanController extends Controller
             return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
         }
         $mahasiswa = $this->getLoggedInMahasiswa();
-    
+
         if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
             abort(403, 'Unauthorized');
         }
-    
+
+        // Cek apakah update dilakukan untuk single document upload atau form utama
+        if ($request->input('action') === 'upload_single_document') {
+            return $this->uploadSingleDocument($request, $pengajuan);
+        }
+
         if ($pengajuan->status !== 'draft' && !in_array($pengajuan->status, ['ditolak_admin', 'ditolak_kaprodi'])) {
             return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)
                              ->with('error', 'Pengajuan ini tidak dapat diupdate karena sudah dalam proses verifikasi.');
         }
-    
+
         $status = $request->input('action') === 'submit' ? 'diajukan_mahasiswa' : 'draft';
-    
+
+        // Base validation rules
         $validationRules = [
             'action' => 'required|in:draft,submit',
+            'judul_pengajuan' => 'nullable|string|max:255',
             'dosen_pembimbing_id' => $status === 'diajukan_mahasiswa' ? 'required|exists:dosens,id' : 'nullable|exists:dosens,id',
-            'dosen_penguji1_id' => 'nullable|exists:dosens,id|different:dosen_pembimbing_id', // Ini Pembimbing 2
-            // Hapus 'ketua_sidang_dosen_id' dari validation rules karena mahasiswa tidak mengaturnya
         ];
-    
+
+        // Specific rules for TA or PKL
+        if ($pengajuan->jenis_pengajuan === 'ta') {
+            $validationRules['dosen_penguji1_id'] = ($status === 'diajukan_mahasiswa' ? 'required' : 'nullable') . '|exists:dosens,id|different:dosen_pembimbing_id';
+        } elseif ($pengajuan->jenis_pengajuan === 'pkl') {
+            // Dosen Penguji 1 (Dosen Pembimbing 2) is not required for PKL
+            $validationRules['dosen_penguji1_id'] = 'nullable|exists:dosens,id|different:dosen_pembimbing_id';
+        }
+
         $dokumenSyaratList = $this->getDokumenSyarat($pengajuan->jenis_pengajuan);
-    
+
+        // Validasi untuk semua dokumen persyaratan
         foreach ($dokumenSyaratList as $key => $namaDokumen) {
             $fieldName = 'dokumen_' . $key;
             $uploadedDoc = $pengajuan->dokumens->where('nama_file', $namaDokumen)->first();
-        
+
             $rulesForThisDoc = [
                 'nullable',
                 'file',
                 'mimes:pdf,jpg,jpeg,png',
                 'max:2048',
             ];
-        
-            if ($status === 'diajukan_mahasiswa' && !$uploadedDoc) {
+
+            // Jika status adalah submit dan dokumen belum ada, maka required
+            if ($status === 'diajukan_mahasiswa' && !$uploadedDoc && !$request->hasFile($fieldName)) {
                 $rulesForThisDoc[] = 'required';
             }
-        
+
             $validationRules[$fieldName] = $rulesForThisDoc;
         }
-    
+
         $validator = Validator::make($request->all(), $validationRules);
-    
+
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
-    
-        $pengajuan->update([
-            'status' => $status,
-        ]);
-    
-        // Update entri sidang
-        if ($pengajuan->sidang) {
-            $pengajuan->sidang->update([
-                'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
-                'dosen_penguji1_id' => $request->dosen_penguji1_id, // Update Dosen Pembimbing 2
-                // Jangan update ketua_sidang_dosen_id di sini, karena itu diurus oleh admin/sistem
-                'status' => $status === 'diajukan_mahasiswa' ? 'belum_dijadwalkan' : $pengajuan->sidang->status,
+
+        try {
+            $pengajuan->update([
+                'judul_pengajuan' => $request->judul_pengajuan, // Update judul pengajuan
+                'status' => $status,
             ]);
-        } else {
-            // Ini seharusnya tidak terjadi di update, tapi sebagai fallback
-            $pengajuan->sidang()->create([
-                'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
-                'dosen_penguji1_id' => $request->dosen_penguji1_id,
-                'status' => 'belum_dijadwalkan',
-            ]);
-        }
-    
-        // Proses dokumen
-        foreach ($dokumenSyaratList as $key => $namaDokumen) {
-            $fieldName = 'dokumen_' . $key;
-            if ($request->hasFile($fieldName)) {
-                $file = $request->file($fieldName);
-                $namaFileSyarat = $namaDokumen;
-            
-                $existingDokumen = Dokumen::where('pengajuan_id', $pengajuan->id)
-                                          ->where('nama_file', $namaFileSyarat)
-                                          ->first();
-            
-                $originalFileName = Str::slug($namaFileSyarat) . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('dokumen_pengajuan/' . $pengajuan->id, $originalFileName, 'public');
-            
-                if ($existingDokumen) {
-                    Storage::disk('public')->delete($existingDokumen->path_file);
-                    $existingDokumen->update(['path_file' => $path, 'status' => 'diajukan_mahasiswa']);
-                } else {
-                    Dokumen::create([
-                        'pengajuan_id' => $pengajuan->id,
-                        'nama_file' => $namaFileSyarat,
-                        'path_file' => $path,
-                        'status' => 'diajukan_mahasiswa',
-                    ]);
+
+            // Update entri sidang
+            if ($pengajuan->sidang) {
+                $pengajuan->sidang->update([
+                    'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
+                    // Only update dosen_penguji1_id if it's present in the request (e.g., for TA) or set to null if PKL
+                    'dosen_penguji1_id' => $request->dosen_penguji1_id,
+                    'status' => $status === 'diajukan_mahasiswa' ? 'belum_dijadwalkan' : $pengajuan->sidang->status,
+                ]);
+            } else {
+                // Ini seharusnya tidak terjadi di update, tapi sebagai fallback jika sidang belum ada
+                $pengajuan->sidang()->create([
+                    'dosen_pembimbing_id' => $request->dosen_pembimbing_id,
+                    'dosen_penguji1_id' => $request->dosen_penguji1_id,
+                    'status' => 'belum_dijadwalkan',
+                ]);
+            }
+
+            // Proses dokumen upload dari form utama (jika ada)
+            foreach ($dokumenSyaratList as $key => $namaDokumen) {
+                $fieldName = 'dokumen_' . $key;
+                if ($request->hasFile($fieldName)) {
+                    $file = $request->file($fieldName);
+                    $namaFileSyarat = $namaDokumen;
+
+                    $existingDokumen = Dokumen::where('pengajuan_id', $pengajuan->id)
+                                              ->where('nama_file', $namaFileSyarat)
+                                              ->first();
+
+                    $originalFileName = Str::slug($namaFileSyarat) . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $path = $file->storeAs('dokumen_pengajuan/' . $pengajuan->id, $originalFileName, 'public');
+
+                    if ($existingDokumen) {
+                        Storage::disk('public')->delete($existingDokumen->path_file);
+                        $existingDokumen->update(['path_file' => $path, 'status' => 'diajukan_mahasiswa']);
+                    } else {
+                        Dokumen::create([
+                            'pengajuan_id' => $pengajuan->id,
+                            'nama_file' => $namaFileSyarat,
+                            'path_file' => $path,
+                            'status' => 'diajukan_mahasiswa',
+                        ]);
+                    }
                 }
             }
-        }
-    
-        if ($status === 'draft') {
-            return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan draft berhasil diperbarui.');
-        } else {
-            return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil difinalisasi dan diajukan!');
+
+            if ($status === 'draft') {
+                return redirect()->route('mahasiswa.pengajuan.edit', $pengajuan->id)->with('success', 'Pengajuan draft berhasil diperbarui.');
+            } else {
+                return redirect()->route('mahasiswa.pengajuan.show', $pengajuan->id)->with('success', 'Pengajuan berhasil difinalisasi dan diajukan!');
+            }
+        } catch (Throwable $e) {
+            \Log::error('Error in PengajuanController@update: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            return back()->with('error', 'Terjadi kesalahan server saat memperbarui pengajuan: ' . $e->getMessage())->withInput();
         }
     }
+
+    protected function uploadSingleDocument(Request $request, Pengajuan $pengajuan)
+    {
+        try {
+            $request->validate([
+                'document_name_key' => 'required|string',
+                'document_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            ]);
+
+            // Ambil key yang sebenarnya dari document_name_key (misal: 'dokumen_laporan_pkl' menjadi 'laporan_pkl')
+            $actualDocumentKey = Str::after($request->input('document_name_key'), 'dokumen_');
+            $dokumenSyaratList = $this->getDokumenSyarat($pengajuan->jenis_pengajuan);
+            $namaDokumen = $dokumenSyaratList[$actualDocumentKey] ?? null; // Gunakan actualDocumentKey di sini
+
+            if (!$namaDokumen) {
+                return response()->json(['success' => false, 'message' => 'Nama dokumen tidak valid.'], 400);
+            }
+
+            $file = $request->file('document_file');
+            $originalFileName = Str::slug($namaDokumen) . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('dokumen_pengajuan/' . $pengajuan->id, $originalFileName, 'public');
+
+            $existingDokumen = Dokumen::where('pengajuan_id', $pengajuan->id)
+                                      ->where('nama_file', $namaDokumen)
+                                      ->first();
+
+            if ($existingDokumen) {
+                Storage::disk('public')->delete($existingDokumen->path_file);
+                $existingDokumen->update(['path_file' => $path, 'status' => 'diajukan_mahasiswa']);
+            } else {
+                Dokumen::create([
+                    'pengajuan_id' => $pengajuan->id,
+                    'nama_file' => $namaDokumen,
+                    'path_file' => $path,
+                    'status' => 'diajukan_mahasiswa',
+                ]);
+            }
+
+            // Ensure the pengajuan status is 'draft' after document upload if it wasn't already submitted
+            // This handles cases where a rejected pengajuan has its document updated.
+            if ($pengajuan->status !== 'diajukan_mahasiswa' && $pengajuan->status !== 'diverifikasi_admin' && $pengajuan->status !== 'dosen_ditunjuk' && $pengajuan->status !== 'sedang_diproses' && $pengajuan->status !== 'selesai') {
+                $pengajuan->update(['status' => 'draft']);
+            }
+
+
+            return response()->json(['success' => true, 'message' => 'Dokumen berhasil diunggah.']);
+        } catch (Throwable $e) {
+            \Log::error('Error in PengajuanController@uploadSingleDocument: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan saat mengunggah dokumen: ' . $e->getMessage()], 500);
+        }
+    }
+
 
     public function index()
     {

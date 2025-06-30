@@ -20,10 +20,10 @@
             --text-color: #2d3748;
             --light-gray: #f8fafc;
             --white: #ffffff;
-            --success: #198754;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --info: #0dcaf0;
+            --success: #22c55e; /* Updated from dashboard-kajur.html */
+            --warning: #f59e0b; /* Updated from dashboard-kajur.html */
+            --danger: #ef4444; /* Updated from dashboard-kajur.html */
+            --info: #3b82f6; /* Updated from dashboard-kajur.html */
             --transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             
             --card-width: 300px;
@@ -39,10 +39,11 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Poppins', sans-serif; /* Kept Poppins from original blade */
         }
         
         body {
+            display: flex; /* Changed to flex for full height sidebar */
             min-height: 100vh;
             background-color: var(--light-gray);
             color: var(--text-color);
@@ -65,12 +66,17 @@
             50% { transform: scale(1.03); }
             100% { transform: scale(1); }
         }
+
+        @keyframes spin { /* Added from dashboard-admin.html */
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         
-        /* Layout Utama */
-        .container {
+        /* Layout Utama - Removed container, body is flex now */
+        /* .container {
             display: flex;
             min-height: 100vh;
-        }
+        } */
         
         /* Sidebar */
         .sidebar {
@@ -85,6 +91,8 @@
             animation: slideInLeft 0.5s ease-out;
             transition: var(--transition);
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
         }
         
         .sidebar.collapsed {
@@ -149,6 +157,10 @@
             letter-spacing: 1px;
             margin-top: 10px;
             transition: var(--transition);
+        }
+
+        .menu-items-wrapper {
+            flex-grow: 1; /* Allows this section to take up available space */
         }
         
         .menu-item {
@@ -223,6 +235,20 @@
             background-color: rgba(255,255,255,0.1);
             color: var(--primary-200);
         }
+
+        .notification-badge {
+            background-color: var(--danger);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            border-radius: 50%;
+            padding: 3px 7px;
+            margin-left: auto;
+            min-width: 20px; /* Ensure badge doesn't collapse for single digits */
+            text-align: center;
+            line-height: 1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
         
         /* Main Content */
         .main-content {
@@ -274,6 +300,97 @@
             color: var(--primary-700);
         }
         
+        /* Profile Dropdown */
+        .user-profile {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            border-radius: 30px;
+            transition: var(--transition);
+            z-index: 20;
+            background: var(--primary-100); /* Added from dashboard-kajur.html */
+            border: 1px solid var(--primary-200); /* Added from dashboard-kajur.html */
+        }
+        
+        .user-profile:hover {
+            background-color: var(--primary-200); /* Changed from primary-100 to primary-200 */
+        }
+        
+        .profile-info { /* Added from dashboard-kajur.html */
+            display: flex;
+            flex-direction: column;
+            margin-right: 12px;
+            text-align: right;
+        }
+        
+        .profile-name { /* Added from dashboard-kajur.html */
+            font-weight: 600;
+            color: var(--primary-700);
+            font-size: 14px;
+        }
+        
+        .profile-role { /* Added from dashboard-kajur.html */
+            font-size: 12px;
+            color: var(--primary-500);
+        }
+        
+        .profile-pic { /* Changed from .user-profile img in original blade */
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+            border: 2px solid var(--white); /* Added from dashboard-kajur.html */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Added from dashboard-kajur.html */
+        }
+        
+        .profile-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 200px;
+            padding: 10px 0;
+            z-index: 1000;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .profile-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+            color: var(--text-color);
+            text-decoration: none;
+        }
+        
+        .dropdown-item i {
+            margin-right: 10px;
+            color: var(--primary-500);
+            width: 20px;
+            text-align: center;
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--primary-100);
+            color: var(--primary-600);
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 5px 0;
+        }
+        
         /* Welcome Box */
         .welcome-box {
             background: linear-gradient(135deg, var(--primary-100), var(--white));
@@ -299,61 +416,102 @@
             margin-bottom: 10px;
             font-size: 24px;
             font-weight: 700;
+            display: flex; /* Added from dashboard-kajur.html */
+            align-items: center; /* Added from dashboard-kajur.html */
+        }
+
+        .welcome-title i { /* Added from dashboard-kajur.html */
+            margin-right: 12px;
+            color: var(--primary-500);
+            background: var(--primary-100);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .welcome-box p {
             color: var(--text-color);
             line-height: 1.6;
+            padding-left: 62px; /* Added from dashboard-kajur.html */
         }
         
-        /* Stats Card */
-        .stats-grid {
+        /* Stats Cards - Renamed stats-grid to stats-container to match dashboard-kajur.html */
+        .stats-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* Adjusted minmax from 220px to 240px */
+            gap: 20px; /* Adjusted gap from 25px to 20px */
+            margin-bottom: 30px; /* Adjusted from 40px to 30px */
         }
         
-        .stats-card {
+        .stat-card { /* Renamed from stats-card to stat-card to match dashboard-kajur.html */
             background: var(--white);
             border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+            padding: 20px; /* Adjusted from 25px to 20px */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Adjusted from 6px 18px */
             display: flex;
             align-items: center;
-            gap: 20px;
             transition: var(--transition);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            animation: fadeIn 0.6s 0.5s both; /* Added animation delay */
+            cursor: pointer; /* Added from dashboard-kajur.html */
+            border: 1px solid rgba(0, 0, 0, 0.05); /* Removed, as it's not in kajur-dashboard.html stat-card */
+            gap: 20px; /* Removed, gap is handled by the container */
         }
         
-        .stats-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        .stat-card:hover { /* Changed from stats-card to stat-card */
+            transform: translateY(-8px); /* Adjusted from -5px to -8px */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Adjusted from 10px 25px */
         }
         
-        .stats-icon {
+        .stat-icon { /* Renamed from stats-icon to stat-icon */
             width: 60px;
             height: 60px;
-            border-radius: 12px;
+            border-radius: 50%; /* Changed from 12px to 50% */
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            color: white;
+            font-size: 24px; /* Adjusted from 1.5rem to 24px */
+            margin-right: 15px; /* Adjusted from 20px to 15px */
+            color: white; /* Removed, color is set by specific card classes */
         }
         
-        .stats-content h3 {
-            font-size: 1.8rem;
+        .stat-content h3 { /* Renamed from stats-content h3 to stat-content h3 */
+            font-size: 28px; /* Adjusted from 1.8rem to 28px */
             font-weight: 700;
             margin-bottom: 5px;
         }
         
-        .stats-content p {
-            color: var(--secondary);
-            font-size: 0.95rem;
+        .stat-content p { /* Renamed from stats-content p to stat-content p */
+            color: var(--text-color); /* Changed from var(--secondary) to var(--text-color) */
+            font-size: 14px; /* Adjusted from 0.95rem to 14px */
+            opacity: 0.8; /* Added from dashboard-kajur.html */
         }
         
-        .icon-blue {
+        /* Specific stat card icon colors */
+        .card-1 .stat-icon { /* New from dashboard-kajur.html */
+            background-color: rgba(59, 130, 246, 0.15);
+            color: var(--info);
+        }
+        
+        .card-2 .stat-icon { /* New from dashboard-kajur.html */
+            background-color: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+        
+        .card-3 .stat-icon { /* New from dashboard-kajur.html */
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+        
+        .card-4 .stat-icon { /* New from dashboard-kajur.html */
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        /* Original icon colors - removed, replaced by specific card classes */
+        /* .icon-blue {
             background: linear-gradient(45deg, var(--primary-500), var(--info));
         }
         
@@ -367,7 +525,7 @@
         
         .icon-red {
             background: linear-gradient(45deg, var(--danger), #ff6b6b);
-        }
+        } */
         
         /* Cards */
         .card-container {
@@ -456,69 +614,8 @@
             text-align: center;
         }
         
-        /* Profile Dropdown */
-        .user-profile {
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            padding: 8px 15px;
-            border-radius: 30px;
-            transition: var(--transition);
-            z-index: 20;
-        }
-        
-        .user-profile:hover {
-            background-color: var(--primary-100);
-        }
-        
-        .profile-dropdown {
-            position: absolute;
-            top: calc(100% + 10px);
-            right: 0;
-            background-color: var(--white);
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 200px;
-            padding: 10px 0;
-            z-index: 1000;
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .profile-dropdown.show {
-            display: block;
-        }
-        
-        .dropdown-item {
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
-            transition: var(--transition);
-            color: var(--text-color);
-            text-decoration: none;
-        }
-        
-        .dropdown-item i {
-            margin-right: 10px;
-            color: var(--primary-500);
-            width: 20px;
-            text-align: center;
-        }
-        
-        .dropdown-item:hover {
-            background-color: var(--primary-100);
-            color: var(--primary-600);
-        }
-        
-        .dropdown-divider {
-            height: 1px;
-            background-color: #e2e8f0;
-            margin: 5px 0;
-        }
-        
-        /* Floating Action Button */
-        .fab {
+        /* Floating Action Button - Removed as it's not in dashboard-kajur.html */
+        /* .fab {
             position: fixed;
             bottom: 30px;
             right: 30px;
@@ -542,7 +639,7 @@
             transform: scale(1.1) rotate(10deg);
             box-shadow: 0 6px 25px rgba(26, 136, 255, 0.6);
             animation: none;
-        }
+        } */
         
         /* Tooltips */
         .tooltip {
@@ -583,7 +680,268 @@
             visibility: visible;
             opacity: 1;
         }
+
+        /* Alert styling for session messages */
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
         
+        /* Content Section - Added from dashboard-kajur.html (for potential future use, not currently used in this blade) */
+        .content-section {
+            background-color: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            animation: fadeIn 0.6s 0.6s both;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            color: var(--primary-600);
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            color: var(--primary-500);
+        }
+        
+        .section-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-filter {
+            background-color: var(--primary-100);
+            border: 1px solid var(--primary-200);
+            color: var(--primary-600);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+        }
+        
+        .btn-filter:hover {
+            background-color: var(--primary-200);
+        }
+        
+        .btn-filter i {
+            margin-right: 5px;
+        }
+        
+        /* Table Styling (copied/adapted from dashboard-kajur.html) */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+            min-width: 800px; /* Ensure table doesn't get too narrow on smaller screens */
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .data-table th {
+            background-color: var(--primary-100);
+            color: var(--primary-700);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .data-table tbody tr {
+            background-color: var(--white);
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        
+        .data-table tbody tr:hover {
+            background-color: var(--primary-100);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        
+        .data-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            min-width: 80px;
+        }
+        
+        .status-badge.pending {
+            background-color: #fffbeb;
+            color: #f59e0b;
+            border: 1px solid #fbd38d;
+        }
+        
+        .status-badge.approved {
+            background-color: #ecfdf5;
+            color: #10b981;
+            border: 1px solid #6ee7b7;
+        }
+        
+        .status-badge.rejected {
+            background-color: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fca5a5;
+        }
+        
+        .status-badge.completed { /* Added from dashboard-kajur.html */
+            background-color: #e0f2f7;
+            color: #0d9488;
+            border: 1px solid #4fd1c5;
+        }
+
+        .btn-action {
+            background-color: var(--primary-500);
+            color: var(--white);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-action:hover {
+            background-color: var(--primary-600);
+        }
+        
+        .btn-action i {
+            font-size: 14px;
+        }
+
+        /* Notification Popup (Added from dashboard-admin.html) */
+        .notification-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--white);
+            padding: 20px 30px;
+            border-radius: 10px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 3000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .notification-modal.show {
+            display: block;
+        }
+        
+        .notification-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        
+        .notification-message {
+            font-size: 18px;
+            color: var(--primary-700);
+            font-weight: 500;
+        }
+        
+        .notification-confirm {
+            color: var(--warning);
+        }
+        
+        .notification-success {
+            color: var(--success);
+        }
+        
+        /* Custom Buttons for Notification Modal (Added from dashboard-admin.html) */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+        
+        .btn-gray {
+            background-color: #d1d5db;
+            color: var(--text-color);
+        }
+        
+        .btn-gray:hover {
+            background-color: #b3b7bc;
+        }
+        
+        .btn-blue {
+            background: linear-gradient(45deg, var(--primary-500), var(--primary-600));
+            color: white;
+        }
+        
+        .btn-blue.loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        .btn-blue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 136, 255, 0.3);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             :root {
@@ -632,18 +990,36 @@
                 left: 0;
                 width: 100%;
             }
+
+            .stats-container { /* Changed from stats-grid to stats-container */
+                grid-template-columns: 1fr;
+            }
+            
+            .welcome-box p {
+                padding-left: 0; /* Adjust for smaller screens */
+            }
+
+            .data-table {
+                min-width: unset; /* Allow table to shrink on small screens */
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 10px; /* Adjust padding for smaller screens */
+            }
+            
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sidebar" id="sidebar">
-            <div class="logo-container">
-                {{-- Pastikan path gambar ini benar di Laravel public folder Anda --}}
-                <img src="{{ asset('assets/images/sipraktawhite2.png') }}" alt="Logo SIPRAKTA" class="logo-img">
-            </div>
-            
-            <div class="menu-title">Menu Utama</div>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-container">
+            {{-- Pastikan path gambar ini benar di Laravel public folder Anda --}}
+            <img src="{{ asset('assets/images/sipraktawhite2.png') }}" alt="Logo SIPRAKTA" class="logo-img">
+        </div>
+        
+        <div class="menu-title">Menu Utama</div>
+        <div class="menu-items-wrapper">
             <a href="{{ route('kajur.dashboard') }}" style="text-decoration: none; color: inherit;">
                 <div class="menu-item {{ Request::routeIs('kajur.dashboard') ? 'active' : '' }} tooltip">
                     <i class="fas fa-tachometer-alt"></i>
@@ -675,31 +1051,6 @@
                 </a>
             </div>
             
-            {{-- Bagian Mahasiswa, Dosen, Prodi mungkin tidak relevan untuk Kajur, sesuaikan jika perlu --}}
-            {{-- <a href="mahasiswa.html" style="text-decoration: none; color: inherit;">
-                <div class="menu-item tooltip">
-                    <i class="fas fa-user-graduate"></i>
-                    <span>Mahasiswa</span>
-                    <span class="tooltiptext">Mahasiswa</span>
-                </div>
-            </a>
-            
-            <a href="dosen.html" style="text-decoration: none; color: inherit;">
-                <div class="menu-item tooltip">
-                    <i class="fas fa-user-tie"></i>
-                    <span>Dosen</span>
-                    <span class="tooltiptext">Dosen</span>
-                </div>
-            </a>
-
-            <a href="prodi.html" style="text-decoration: none; color: inherit;">
-                <div class="menu-item tooltip">
-                    <i class="fas fa-book"></i>
-                    <span>Program Studi</span>
-                    <span class="tooltiptext">Program Studi</span>
-                </div>
-            </a> --}}
-            
             <div class="menu-item tooltip" onclick="toggleSubmenu('jadwal', event)">
                 <i class="fas fa-calendar-alt"></i>
                 <span>Jadwal Sidang</span>
@@ -729,188 +1080,296 @@
                     </div>
                 </a>
             </div>
-            
-            {{-- Notifikasi mungkin perlu disesuaikan atau dihapus jika tidak ada rute untuk Kajur --}}
-            {{-- <a href="notifikasi-admin.html" style="text-decoration: none; color: inherit;">
-                <div class="menu-item tooltip">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifikasi</span>
-                    <span class="tooltiptext">Notifikasi</span>
-                </div>
-            </a> --}}
-        </div>
 
-        <div class="main-content" id="mainContent">
-            <div class="header">
-                <div class="header-content">
-                    <div style="display: flex; align-items: center;">
-                        <button class="toggle-sidebar" id="toggleSidebar">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <h1 style="font-size: 28px; color: var(--primary-700);">
-                            <i class="fas fa-tachometer-alt" style="margin-right: 15px;"></i>
-                            Dashboard Kajur
-                        </h1>
+            {{-- Notification item --}}
+            <div class="menu-item tooltip">
+                <i class="fas fa-bell"></i>
+                <span>Notifikasi</span>
+                <span class="notification-badge">5</span> {{-- Static notification count for display --}}
+                <span class="tooltiptext">Notifikasi</span>
+            </div>
+        </div> {{-- End of menu-items-wrapper --}}
+
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="header">
+            <div class="header-content">
+                <div style="display: flex; align-items: center;">
+                    <button class="toggle-sidebar" id="toggleSidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 style="font-size: 28px; color: var(--primary-700);">
+                        <i class="fas fa-tachometer-alt" style="margin-right: 15px;"></i>
+                        Dashboard Kajur
+                    </h1>
+                </div>
+                <div class="user-profile" id="userProfile">
+                    <img src="https://ui-avatars.com/api/?name={{ Auth::user()->name ?? 'Kajur' }}&background=1a88ff&color=fff" 
+                         class="profile-pic" alt="Foto Profil">
+                    <div class="profile-info">
+                        <div class="profile-name">{{ Auth::user()->name ?? 'Kajur' }}</div>
+                        <div class="profile-role">Ketua Jurusan</div> {{-- Assuming a role for Kajur --}}
                     </div>
-                    <div class="user-profile" id="userProfile">
-                        {{-- Ganti 'Admin' dengan nama user yang login --}}
-                        <img src="https://ui-avatars.com/api/?name={{ Auth::user()->name ?? 'Kajur' }}&background=1a88ff&color=fff" 
-                             style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
-                        <span style="font-weight: 500;">{{ Auth::user()->name ?? 'Kajur' }}</span>
-                        <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 12px;"></i>
-                        
-                        <div class="profile-dropdown" id="profileDropdown">
-                            {{-- Jika ada rute untuk ubah sandi Kajur --}}
-                            {{-- <a href="ubah-sandi-admin.html" class="dropdown-item">
-                                <i class="fas fa-key"></i>
-                                <span>Ubah Sandi</span>
-                            </a>
-                            <div class="dropdown-divider"></div> --}}
-                            <a href="#" class="dropdown-item" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>Keluar</span>
-                            </a>
-                            <form id="logout-form" action="{{ route('kajur.logout') }}" method="POST" style="display: none;">
-                                @csrf
-                            </form>
-                        </div>
+                    <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 12px;"></i>
+                    
+                    <div class="profile-dropdown" id="profileDropdown">
+                        {{-- If there are routes for Kajur profile/password change --}}
+                        <a href="#" class="dropdown-item"> {{-- Placeholder for actual profile route --}}
+                            <i class="fas fa-user"></i>
+                            <span>Profil Saya</span>
+                        </a>
+                        <a href="#" class="dropdown-item"> {{-- Placeholder for actual password change route --}}
+                            <i class="fas fa-key"></i>
+                            <span>Ubah Sandi</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" onclick="showLogoutConfirmation()"> {{-- Changed to call showLogoutConfirmation --}}
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Keluar</span>
+                        </a>
+                        <form id="logout-form" action="{{ route('kajur.logout') }}" method="POST" style="display: none;">
+                            @csrf
+                        </form>
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <div class="welcome-box">
+            <h2 class="welcome-title">
+                <i class="fas fa-user-tie"></i>
+                Selamat Datang, {{ Auth::user()->name ?? 'Kajur SIPRAKTA' }}
+            </h2>
+            <p>Sistem Informasi Praktek Kerja Lapangan dan Tugas Akhir - Politeknik Negeri Padang</p>
+        </div>
+
+        @if (session('success'))
+            <div class="alert alert-success" style="animation: fadeIn 0.6s 0.2s both;">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="alert alert-danger" style="animation: fadeIn 0.6s 0.2s both;">
+                {{ session('error') }}
+            </div>
+        @endif
+        
+        <div class="stats-container"> {{-- Changed from stats-grid to stats-container --}}
+            <div class="stat-card card-1" style="animation-delay: 0.1s;"> {{-- Added card-1 class --}}
+                <div class="stat-icon"> {{-- Changed from stats-icon to stat-icon --}}
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="stat-content"> {{-- Changed from stats-content to stat-content --}}
+                    <div class="stat-number">{{ $jumlahSidangSedang }}</div> {{-- Changed from h3 to div.stat-number --}}
+                    <div class="stat-title">Sidang Hari Ini</div> {{-- Changed from p to div.stat-title --}}
+                </div>
+            </div>
             
-            <div class="welcome-box">
-                <h2 class="welcome-title">
-                    <i class="fas fa-user-tie" style="margin-right: 10px;"></i>
-                    Selamat Datang Kajur SIPRAKTA
+            <div class="stat-card card-2" style="animation-delay: 0.2s;"> {{-- Added card-2 class --}}
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ $jumlahSidangTelah }}</div>
+                    <div class="stat-title">Sidang Telah Berlangsung</div>
+                </div>
+            </div>
+            
+            <div class="stat-card card-3" style="animation-delay: 0.3s;"> {{-- Added card-3 class --}}
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ $jumlahSidangAkan }}</div>
+                    <div class="stat-title">Sidang Akan Datang</div>
+                </div>
+            </div>
+            
+            <div class="stat-card card-4" style="animation-delay: 0.4s;"> {{-- Added card-4 class --}}
+                <div class="stat-icon">
+                    <i class="fas fa-file-signature"></i>
+                </div>
+                <div class="stat-content">
+                    {{-- Contoh data pengajuan yang perlu diverifikasi --}}
+                    <div class="stat-number">{{ $jumlahPengajuanPerluVerifikasi ?? 'N/A' }}</div> 
+                    <div class="stat-title">Pengajuan Perlu Verifikasi</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-container">
+            <a href="{{ route('kajur.pengajuan.perlu_verifikasi') }}" class="card-link">
+                <div class="card clickable-card medium">
+                    <div class="card-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <h3 class="card-title">
+                        Pengajuan Perlu Verifikasi
+                    </h3>
+                </div>
+            </a>
+            
+            <a href="{{ route('kajur.pengajuan.sudah_verifikasi') }}" class="card-link">
+                <div class="card clickable-card medium">
+                    <div class="card-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 class="card-title">
+                        Pengajuan Terverifikasi
+                    </h3>
+                </div>
+            </a>
+            
+            <a href="{{ route('kajur.sidang.sedang') }}" class="card-link">
+                <div class="card clickable-card medium">
+                    <div class="card-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3 class="card-title">
+                        Sidang Hari Ini
+                    </h3>
+                </div>
+            </a>
+
+            <a href="{{ route('kajur.sidang.telah') }}" class="card-link">
+                <div class="card clickable-card medium">
+                    <div class="card-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h3 class="card-title">
+                        Sidang Telah Berlanggang
+                    </h3>
+                </div>
+            </a>
+
+            <a href="{{ route('kajur.sidang.akan') }}" class="card-link">
+                <div class="card clickable-card medium">
+                    <div class="card-icon">
+                        <i class="fas fa-forward"></i>
+                    </div>
+                    <h3 class="card-title">
+                        Sidang Akan Datang
+                    </h3>
+                </div>
+            </a>
+            
+        </div>
+
+        {{-- Daftar Pengajuan Section --}}
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-list-alt"></i> Daftar Pengajuan
                 </h2>
-                <p>Sistem Informasi Praktek Kerja Lapangan dan Tugas Akhir - Politeknik Negeri Padang</p>
-            </div>
-
-            @if (session('success'))
-                <div class="alert alert-success" style="animation: fadeIn 0.6s 0.2s both;">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="alert alert-danger" style="animation: fadeIn 0.6s 0.2s both;">
-                    {{ session('error') }}
-                </div>
-            @endif
-            
-            <div class="stats-grid">
-                <div class="stats-card" style="animation-delay: 0.1s;">
-                    <div class="stats-icon icon-blue">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="stats-content">
-                        <h3>{{ $jumlahSidangSedang }}</h3>
-                        <p>Sidang Hari Ini</p>
-                    </div>
-                </div>
-                
-                <div class="stats-card" style="animation-delay: 0.2s;">
-                    <div class="stats-icon icon-green">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <div class="stats-content">
-                        <h3>{{ $jumlahSidangTelah }}</h3>
-                        <p>Sidang Telah Berlangsung</p>
-                    </div>
-                </div>
-                
-                <div class="stats-card" style="animation-delay: 0.3s;">
-                    <div class="stats-icon icon-orange">
-                        <i class="fas fa-calendar-plus"></i>
-                    </div>
-                    <div class="stats-content">
-                        <h3>{{ $jumlahSidangAkan }}</h3>
-                        <p>Sidang Akan Datang</p>
-                    </div>
-                </div>
-                
-                <div class="stats-card" style="animation-delay: 0.4s;">
-                    <div class="stats-icon icon-red">
-                        <i class="fas fa-file-signature"></i>
-                    </div>
-                    <div class="stats-content">
-                        {{-- Contoh data pengajuan yang perlu diverifikasi --}}
-                        <h3>{{ $jumlahPengajuanPerluVerifikasi ?? 'N/A' }}</h3> 
-                        <p>Pengajuan Perlu Verifikasi</p>
-                    </div>
+                <div class="section-actions">
+                    <button class="btn-filter">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button class="btn-filter">
+                        <i class="fas fa-sort"></i> Urutkan
+                    </button>
                 </div>
             </div>
-            
-            <div class="card-container">
-                <a href="{{ route('kajur.pengajuan.perlu_verifikasi') }}" class="card-link">
-                    <div class="card clickable-card medium">
-                        <div class="card-icon">
-                            <i class="fas fa-hourglass-half"></i>
-                        </div>
-                        <h3 class="card-title">
-                            Pengajuan Perlu Verifikasi
-                        </h3>
-                    </div>
-                </a>
-                
-                <a href="{{ route('kajur.pengajuan.sudah_verifikasi') }}" class="card-link">
-                    <div class="card clickable-card medium">
-                        <div class="card-icon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <h3 class="card-title">
-                            Pengajuan Terverifikasi
-                        </h3>
-                    </div>
-                </a>
-                
-                <a href="{{ route('kajur.sidang.sedang') }}" class="card-link">
-                    <div class="card clickable-card medium">
-                        <div class="card-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <h3 class="card-title">
-                            Sidang Hari Ini
-                        </h3>
-                    </div>
-                </a>
-
-                <a href="{{ route('kajur.sidang.telah') }}" class="card-link">
-                    <div class="card clickable-card medium">
-                        <div class="card-icon">
-                            <i class="fas fa-history"></i>
-                        </div>
-                        <h3 class="card-title">
-                            Sidang Telah Berlangsung
-                        </h3>
-                    </div>
-                </a>
-
-                <a href="{{ route('kajur.sidang.akan') }}" class="card-link">
-                    <div class="card clickable-card medium">
-                        <div class="card-icon">
-                            <i class="fas fa-forward"></i>
-                        </div>
-                        <h3 class="card-title">
-                            Sidang Akan Datang
-                        </h3>
-                    </div>
-                </a>
-                
-                {{-- Tambahkan kartu lain jika ada fitur spesifik Kajur --}}
-                {{-- Contoh: Cetak Laporan --}}
-                {{-- <a href="#" class="card-link">
-                    <div class="card clickable-card medium">
-                        <div class="card-icon">
-                            <i class="fas fa-print"></i>
-                        </div>
-                        <h3 class="card-title">
-                            Cetak Laporan
-                        </h3>
-                    </div>
-                </a> --}}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Mahasiswa</th>
+                            <th>NIM</th>
+                            <th>Jenis Pengajuan</th>
+                            <th>Tanggal Pengajuan</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Alia Putri</td>
+                            <td>2211082001</td>
+                            <td>KP</td>
+                            <td>2024-05-20</td>
+                            <td><span class="status-badge pending">Pending</span></td>
+                            <td>
+                                <button class="btn-action" onclick="viewDetail()">
+                                    <i class="fas fa-eye"></i> Detail
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Budi Santoso</td>
+                            <td>2211082002</td>
+                            <td>TA</td>
+                            <td>2024-05-21</td>
+                            <td><span class="status-badge approved">Diterima</span></td>
+                            <td>
+                                <button class="btn-action" onclick="viewDetail()">
+                                    <i class="fas fa-eye"></i> Detail
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Citra Dewi</td>
+                            <td>2211082003</td>
+                            <td>KP</td>
+                            <td>2024-05-22</td>
+                            <td><span class="status-badge rejected">Ditolak</span></td>
+                            <td>
+                                <button class="btn-action" onclick="viewDetail()">
+                                    <i class="fas fa-eye"></i> Detail
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>Doni Pratama</td>
+                            <td>2211082004</td>
+                            <td>TA</td>
+                            <td>2024-05-23</td>
+                            <td><span class="status-badge completed">Selesai</span></td>
+                            <td>
+                                <button class="btn-action" onclick="viewDetail()">
+                                    <i class="fas fa-eye"></i> Detail
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>Eka Nurmala</td>
+                            <td>2211082005</td>
+                            <td>KP</td>
+                            <td>2024-05-24</td>
+                            <td><span class="status-badge pending">Pending</span></td>
+                            <td>
+                                <button class="btn-action" onclick="viewDetail()">
+                                    <i class="fas fa-eye"></i> Detail
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
+
+        <div class="notification-modal" id="logoutConfirmationModal">
+            <i class="fas fa-exclamation-triangle notification-icon notification-confirm"></i>
+            <div class="notification-message">Apakah Anda yakin ingin keluar dari sistem?</div>
+            <div class="modal-footer" style="justify-content: center; gap: 15px; margin-top: 20px; display: flex;">
+                <button class="btn btn-gray" onclick="hideLogoutConfirmation()">Batal</button>
+                <button class="btn btn-blue" id="confirmLogoutBtn" onclick="performLogout()">Ya</button>
+            </div>
+        </div>
+
+        <div class="notification-modal" id="logoutSuccessModal">
+            <i class="fas fa-check-circle notification-icon notification-success"></i>
+            <div class="notification-message">Anda berhasil logout. Mengarahkan ke halaman login...</div>
+        </div>
+
     </div>
 
 
@@ -950,13 +1409,6 @@
                     item.classList.remove('show');
                 }
             });
-            
-            // Update active state (optional, if you want parent menu to stay active when submenu is open)
-            // if (submenu.classList.contains('show')) {
-            //     menuItem.classList.add('active');
-            // } else {
-            //     menuItem.classList.remove('active');
-            // }
         }
         
         // Toggle profile dropdown
@@ -972,15 +1424,6 @@
         document.addEventListener('click', function() {
             profileDropdown.classList.remove('show');
         });
-        
-        // Logout function (disini sudah pakai form submit untuk Laravel)
-        // function logout() {
-        //     if (confirm('Apakah Anda yakin ingin keluar dari sistem?')) {
-        //         // Add logout logic here (clear session, etc)
-        //         alert('Anda berhasil logout. Mengarahkan ke halaman login...');
-        //         window.location.href = 'login.html';
-        //     }
-        // }
         
         // Card hover effects
         document.querySelectorAll('.clickable-card').forEach(card => {
@@ -1032,6 +1475,45 @@
                 }
             });
         });
+
+        // Function for View Detail button (from dashboard-kajur.html)
+        function viewDetail() {
+            alert('Mengarahkan ke halaman detail pengajuan...');
+            // In a real application, you would typically redirect to a detail page
+            // window.location.href = 'detailpengajuan.html'; 
+        }
+
+        // Logout functionality with notification pop-ups (Copied and adapted from dashboard-admin.html)
+        const logoutConfirmationModal = document.getElementById('logoutConfirmationModal');
+        const logoutSuccessModal = document.getElementById('logoutSuccessModal');
+        const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+        const logoutForm = document.getElementById('logout-form'); // Get the logout form
+
+        function showLogoutConfirmation() {
+            logoutConfirmationModal.classList.add('show');
+        }
+
+        function hideLogoutConfirmation() {
+            logoutConfirmationModal.classList.remove('show');
+        }
+
+        function performLogout() {
+            confirmLogoutBtn.classList.add('loading');
+            confirmLogoutBtn.disabled = true;
+
+            setTimeout(() => {
+                hideLogoutConfirmation();
+                logoutSuccessModal.classList.add('show');
+                
+                setTimeout(() => {
+                    logoutSuccessModal.classList.remove('show');
+                    logoutForm.submit(); // Submit the form after success message
+                }, 2000); // Show success message for 2 seconds before redirecting
+                
+                confirmLogoutBtn.classList.remove('loading');
+                confirmLogoutBtn.disabled = false;
+            }, 1500); // Simulated loading delay of 1.5 seconds
+        }
     </script>
 </body>
 </html>

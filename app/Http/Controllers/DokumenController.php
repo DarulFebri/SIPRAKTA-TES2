@@ -12,7 +12,7 @@ use App\Models\Mahasiswa; // Tambahkan ini
 
 class DokumenController extends Controller
 {
-    // Helper untuk mendapatkan objek Mahasiswa dari user yang login
+
     private function getLoggedInMahasiswa()
     {
         return Mahasiswa::where('user_id', Auth::id())->firstOrFail();
@@ -33,14 +33,77 @@ class DokumenController extends Controller
 
         $dokumenTerupload = Dokumen::where('pengajuan_id', $pengajuan->id)->get();
 
-        return view('mahasiswa.dokumen.index', compact('pengajuan', 'dokumenTerupload'));
+        // Mengambil jenis dokumen dari PengajuanController
+        $pengajuanController = new PengajuanController();
+        $jenisDokumen = $pengajuanController->getJenisDokumenPkl(); // Asumsi ini untuk PKL, sesuaikan jika ada jenis TA
+
+        return view('mahasiswa.dokumen.index', compact('pengajuan', 'dokumenTerupload', 'jenisDokumen'));
     }
 
-    // Metode store dan update di DokumenController dapat dihapus atau disesuaikan
-    // jika Anda ingin memungkinkan update/hapus dokumen individual secara terpisah dari pengajuan.
-    // Namun, untuk alur pengajuan dokumen persyaratan, PengajuanController sudah cukup.
+    public function storeOrUpdate(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+            return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+        }
 
-    // Contoh: Jika Anda ingin mahasiswa bisa menghapus dokumen satu per satu
+        $mahasiswa = $this->getLoggedInMahasiswa();
+
+        $validator = Validator::make($request->all(), [
+            'pengajuan_id' => 'required|exists:pengajuans,id',
+            'jenis_dokumen' => 'required|string|max:255',
+            'file' => 'required|file|mimes:pdf|max:2048', // Max 2MB for PDF
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                             ->withErrors($validator)
+                             ->withInput()
+                             ->with('error', 'Gagal mengunggah dokumen: ' . $validator->errors()->first());
+        }
+
+        $pengajuan = Pengajuan::findOrFail($request->pengajuan_id);
+
+        // Pastikan mahasiswa yang mengunggah adalah pemilik pengajuan
+        if ($mahasiswa->id != $pengajuan->mahasiswa_id) {
+            abort(403, 'Anda tidak diizinkan mengunggah dokumen untuk pengajuan ini.');
+        }
+
+        // Pastikan pengajuan belum difinalisasi atau diverifikasi
+        if ($pengajuan->isFinalized()) {
+            return redirect()->back()->with('error', 'Pengajuan sudah difinalisasi dan dokumen tidak dapat diunggah atau diubah.');
+        }
+
+        $file = $request->file('file');
+        $fileName = time() . '_' . Str::slug($request->jenis_dokumen) . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('public/dokumen_pengajuan', $fileName); // Store in public/dokumen_pengajuan
+
+        // Check if a document of this type already exists for this submission
+        $existingDokumen = Dokumen::where('pengajuan_id', $pengajuan->id)
+                                  ->where('jenis_dokumen', $request->jenis_dokumen)
+                                  ->first();
+
+        if ($existingDokumen) {
+            // Update existing document
+            Storage::disk('public')->delete($existingDokumen->path_file); // Delete old file
+            $existingDokumen->path_file = $path;
+            $existingDokumen->nama_file = $fileName;
+            $existingDokumen->save();
+            $message = 'Dokumen berhasil diperbarui.';
+        } else {
+            // Create new document
+            Dokumen::create([
+                'pengajuan_id' => $pengajuan->id,
+                'jenis_dokumen' => $request->jenis_dokumen,
+                'nama_file' => $fileName,
+                'path_file' => $path,
+                'tanggal_upload' => now(),
+            ]);
+            $message = 'Dokumen berhasil diunggah.';
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
     public function destroy(Dokumen $dokumen)
     {
         if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
@@ -51,7 +114,7 @@ class DokumenController extends Controller
 
         // Pastikan dokumen milik mahasiswa yang login dan pengajuan masih dalam status draft/ditolak
         if ($dokumen->pengajuan->mahasiswa_id !== $mahasiswa->id ||
-            !in_array($dokumen->pengajuan->status, ['draft', 'ditolak_admin', 'ditolak_kaprodi'])) {
+            $dokumen->pengajuan->isFinalized()) { // Check if finalized
             abort(403, 'Anda tidak diizinkan menghapus dokumen ini.');
         }
 
@@ -60,4 +123,20 @@ class DokumenController extends Controller
 
         return back()->with('success', 'Dokumen berhasil dihapus.');
     }
+
+
+
+
+
+
+
+
+
+    // Helper untuk mendapatkan objek Mahasiswa dari user yang login
+
+    // Metode store dan update di DokumenController dapat dihapus atau disesuaikan
+    // jika Anda ingin memungkinkan update/hapus dokumen individual secara terpisah dari pengajuan.
+    // Namun, untuk alur pengajuan dokumen persyaratan, PengajuanController sudah cukup.
+
+    // Contoh: Jika Anda ingin mahasiswa bisa menghapus dokumen satu per satu
 }

@@ -109,6 +109,19 @@ Route::prefix('admin/pengajuan-verifikasi')->name('admin.pengajuan.verifikasi.')
 
 // Mahasiswa Routes
 Route::prefix('mahasiswa')->group(function () {
+
+
+    // For Sidang PKL
+    Route::get('/sidang/pkl/jadwal', [PengajuanController::class, 'jadwalSidangPkl'])->name('sidang.pkl.jadwal');
+    
+    // For Sidang TA
+    Route::get('/sidang/ta/jadwal', [PengajuanController::class, 'jadwalSidangTa'])->name('sidang.ta.jadwal');
+    
+    // For showing a single sidang (optional, but good for details)
+    Route::get('/sidang/{id}', [PengajuanController::class, 'showSidang'])->name('sidang.show');
+
+
+
     // Public routes
     Route::get('/login', [MahasiswaController::class, 'loginForm'])->name('mahasiswa.login');
     Route::post('/login', [MahasiswaController::class, 'login']);

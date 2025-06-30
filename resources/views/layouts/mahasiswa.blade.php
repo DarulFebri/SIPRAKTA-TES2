@@ -1182,7 +1182,7 @@
                         <span class="tooltiptext">Pendaftaran Sidang</span>
                     </div>
                 </a>
-                <a href="#" style="text-decoration: none; color: inherit;">
+                <a href="{{ route('sidang.pkl.jadwal') }}" style="text-decoration: none; color: inherit;">
                     <div class="submenu-item tooltip {{ Request::routeIs('mahasiswa.jadwal.pkl') ? 'active' : '' }}">
                         <i class="fas fa-chevron-right"></i>
                         <span>Jadwal Sidang</span>
@@ -1204,7 +1204,7 @@
                         <span class="tooltiptext">Pendaftaran Sidang</span>
                     </div>
                 </a>
-                <a href="#" style="text-decoration: none; color: inherit;">
+                <a href="{{ route('sidang.ta.jadwal') }}" style="text-decoration: none; color: inherit;">
                     <div class="submenu-item tooltip {{ Request::routeIs('mahasiswa.jadwal.ta') ? 'active' : '' }}">
                         <i class="fas fa-chevron-right"></i>
                         <span>Jadwal Sidang</span>

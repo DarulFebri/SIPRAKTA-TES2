@@ -11,11 +11,81 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Dosen;
 use App\Models\Mahasiswa;
+use App\Models\Sidang;
 use Illuminate\Validation\Rule;
 use Throwable; // Import Throwable untuk menangkap semua jenis error/exception
 
 class PengajuanController extends Controller
 {
+
+
+    public function jadwalSidangPkl()
+    {
+        // Eager load related data: pengajuan and all associated dosens
+        $sidangsPkl = Sidang::with([
+            'pengajuan',
+            'ketuaSidangDosen',
+            'sekretarisSidangDosen',
+            'anggota1SidangDosen',
+            'anggota2SidangDosen',
+            'dosenPembimbing',
+            'dosenPenguji1',
+            'dosenPenguji2'
+        ])
+        ->whereHas('pengajuan', function ($query) {
+            $query->where('jenis_pengajuan', 'Sidang PKL'); // Assuming 'jenis_pengajuan' exists in 'pengajuans' table
+        })
+        ->orderBy('tanggal_waktu_sidang', 'desc')
+        ->get();
+
+        return view('mahasiswa.jadwal_pkl', compact('sidangsPkl'));
+    }
+
+    /**
+     * Display a listing of Sidang TA schedules.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function jadwalSidangTa()
+    {
+        // Eager load related data: pengajuan and all associated dosens
+        $sidangsTa = Sidang::with([
+            'pengajuan',
+            'ketuaSidangDosen',
+            'sekretarisSidangDosen',
+            'anggota1SidangDosen',
+            'anggota2SidangDosen',
+            'dosenPembimbing',
+            'dosenPenguji1',
+            'dosenPenguji2'
+        ])
+        ->whereHas('pengajuan', function ($query) {
+            $query->where('jenis_pengajuan', 'Sidang TA'); // Assuming 'jenis_pengajuan' exists in 'pengajuans' table
+        })
+        ->orderBy('tanggal_waktu_sidang', 'desc')
+        ->get();
+
+        return view('mahasiswa.jadwal_ta', compact('sidangsTa'));
+    }
+
+    // You might also want a method to view a single sidang detail
+    public function showSidang($id)
+    {
+        $sidang = Sidang::with([
+            'pengajuan',
+            'ketuaSidangDosen',
+            'sekretarisSidangDosen',
+            'anggota1SidangDosen',
+            'anggota2SidangDosen',
+            'dosenPembimbing',
+            'dosenPenguji1',
+            'dosenPenguji2'
+        ])->findOrFail($id);
+
+        return view('mahasiswa.show', compact('sidang'));
+    }
+
+
     private function getLoggedInMahasiswa()
     {
         return Mahasiswa::where('user_id', Auth::id())->firstOrFail();

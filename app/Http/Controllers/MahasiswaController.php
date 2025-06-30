@@ -21,6 +21,16 @@ use Illuminate\Validation\Rule; // Tambahkan ini untuk Rule::unique
 
 class MahasiswaController extends Controller
 {
+
+    public function export()
+    {
+        // Nama file yang akan diunduh
+        $fileName = 'data_mahasiswa_' . date('Ymd_His') . '.xlsx';
+
+        // Unduh file Excel menggunakan kelas export yang sudah dibuat
+        return Excel::download(new MahasiswaExport, $fileName);
+    }
+
     // Method untuk memproses file Excel mahasiswa
     public function import(Request $request)
     {
@@ -573,12 +583,5 @@ class MahasiswaController extends Controller
     {
         // View untuk form import
         return view('admin.mahasiswa.import');
-    }
-
-    public function export()
-    {
-        $fileName = 'data_mahasiswa_' . date('Ymd_His') . '.xlsx';
-        // Uncomment baris ini jika Anda menggunakan Maatwebsite Excel
-        // return Excel::download(new MahasiswaExport, $fileName);
     }
 }

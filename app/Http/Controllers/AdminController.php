@@ -245,7 +245,7 @@ class AdminController extends Controller
         return view('admin.dosen.show', compact('dosen'));
     }
 
-    public function createDosen()
+    public function createDosen() 
     {
         return view('admin.dosen.create');
     }
@@ -277,6 +277,7 @@ class AdminController extends Controller
             'nidn' => $request->nidn,
             'nama' => $request->nama,
             'jurusan' => $request->jurusan,
+            'email' => $request->email,
             'prodi' => $request->prodi,
             'jenis_kelamin' => $request->jenis_kelamin,
             'password' => $request->password,

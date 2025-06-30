@@ -525,7 +525,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($mahasiswas as $mahasiswa)
+                    @forelse ($mahasiswas as $mahasiswa)
                         <tr>
                             <td>{{ $mahasiswa->nim }}</td>
                             <td>{{ $mahasiswa->nama_lengkap }}</td>
@@ -541,7 +541,11 @@
                                 </a>
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center">Data mahasiswa tidak ditemukan.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

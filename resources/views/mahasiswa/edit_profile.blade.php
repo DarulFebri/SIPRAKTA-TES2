@@ -28,7 +28,7 @@
             <div class="form-grid"> {{-- Wrapper untuk input menjadi grid --}}
                 <div class="form-group">
                     <label for="nama"><i class="fas fa-user"></i> Nama Lengkap</label>
-                    <input type="text" id="nama" name="nama" value="{{ old('nama', $mahasiswa->nama_lengkap) }}" required class="form-input @error('nama') is-invalid @enderror">
+                    <input type="text" id="nama_lengkap" name="nama_lengkap" value="{{ old('nama_lengkap', $mahasiswa->nama_lengkap) }}" required class="form-input @error('nama') is-invalid @enderror">
                     @error('nama')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror

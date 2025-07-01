@@ -1,7 +1,7 @@
 Internal Server Error
 
 ErrorException
-Undefined variable $mahasiswa
+Undefined variable $dosens
 GET localhost:8000
 PHP 8.3.13 — Laravel 12.19.3
 
@@ -9,7 +9,7 @@ Expand
 vendor frames
 
 resources/views/mahasiswa/pengajuan/pkl.blade.php
-:98
+:132
 require
 13 vendor frames collapsed
 
@@ -22,20 +22,19 @@ public/index.php
 :20
 require_once
 1 vendor frame collapsed
-resources/views/mahasiswa/pengajuan/pkl.blade.php :98
-        {{-- Mahasiswa Info (Read-only) --}}
-        <div class="student-info">
-            <div class="info-card">
-                <div class="info-group">
-                    <label><i class="fas fa-user"></i> Nama</label>
-                    <input type="text" value="{{ $mahasiswa->nama }}" disabled>
+resources/views/mahasiswa/pengajuan/pkl.blade.php :132
+                    <select id="dosen_pembimbing_id" name="dosen_pembimbing_id" class="form-control"
+                            {{ $pengajuan->isSubmitted() ? 'disabled' : '' }}
+                            data-url="{{ route('mahasiswa.pengajuan.update', $pengajuan->id) }}"
+                            data-field="dosen_pembimbing_id">
+                        <option value="">Pilih Dosen Pembimbing</option>
+                        @foreach($dosens as $dosen)
+                            <option value="{{ $dosen->id }}" {{ old('dosen_pembimbing_id', optional($pengajuan->sidang)->dosen_pembimbing_id) == $dosen->id ? 'selected' : '' }}>
+                                {{ $dosen->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small id="dosen-save-status" class="form-text text-muted" style="display: none;">Menyimpan...</small>
                 </div>
             </div>
-            <div class="info-card">
-                <div class="info-group">
-                    <label><i class="fas fa-id-card"></i> NIM</label>
-                    <input type="text" value="{{ $mahasiswa->nim }}" disabled>
-                </div>
-            </div>
-            <div class="info-card">
-                <div class="info-group">
+        </div>

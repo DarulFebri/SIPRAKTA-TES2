@@ -161,6 +161,12 @@ Route::prefix('mahasiswa')->group(function () {
 
         // Pengajuan routes
         Route::prefix('pengajuan')->name('mahasiswa.pengajuan.')->group(function () {
+
+
+            
+
+
+
             Route::get('/pilih', [PengajuanController::class, 'pilihJenis'])->name('pilih');
             Route::get('/detail/{jenis}', [PengajuanController::class, 'create'])->name('detail');
             Route::post('/', [PengajuanController::class, 'store'])->name('store');

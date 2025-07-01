@@ -75,7 +75,7 @@
     @if ($errors->any())
         <div class="alert alert-danger mt-4">
             <i class="fas fa-exclamation-triangle"></i>
-            <strong>Terjadi Kesalahan Validasi:</strong>
+            <strong>Terjadi Kesalahan Validasi.:</strong>
             <ul>
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>

@@ -416,10 +416,14 @@ class PengajuanController extends Controller
             ['status' => 'draft', 'judul_pengajuan' => null]
         );
         
-        $dosens = Dosen::all(); // <-- Ambil semua dosen dan gunakan nama variabel $dosens
+        $dosens = Dosen::all();
 
-        // PERBAIKAN: Pastikan 'dosens' ada di compact()
-        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'mahasiswa', 'dosens'));
+        // PERBAIKAN: Ambil dan lewatkan variabel $dokumenSyarat dan $dokumenTerupload
+        $jenis = 'pkl'; // Karena metode ini khusus untuk PKL
+        $dokumenSyarat = $this->getDokumenSyarat($jenis);
+        $dokumenTerupload = $pengajuan->dokumens->keyBy('nama_file'); // Kunci berdasarkan nama file untuk pencarian mudah
+
+        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'mahasiswa', 'dosens', 'dokumenSyarat', 'dokumenTerupload'));
     }
 
     /**

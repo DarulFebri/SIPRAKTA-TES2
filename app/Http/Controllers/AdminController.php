@@ -24,6 +24,43 @@ use Illuminate\Support\Facades\Hash;
 class AdminController extends Controller
 {
 
+    public function daftarDosen(Request $request)
+{
+    $query = Dosen::query();
+    
+    // Search functionality
+    if ($request->has('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('nama', 'like', "%{$search}%")
+              ->orWhere('nidn', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%");
+        });
+    }
+    
+    // Sorting functionality
+    switch ($request->sort) {
+        case 'nama_asc':
+            $query->orderBy('nama', 'asc');
+            break;
+        case 'nama_desc':
+            $query->orderBy('nama', 'desc');
+            break;
+        case 'nidn_asc':
+            $query->orderBy('nidn', 'asc');
+            break;
+        case 'nidn_desc':
+            $query->orderBy('nidn', 'desc');
+            break;
+        default:
+            $query->orderBy('created_at', 'desc');
+    }
+    
+    $dosens = $query->paginate(10);
+    
+    return view('admin.dosen.index', compact('dosens'));
+}
+
 
     public function importForm()
     {
@@ -262,13 +299,6 @@ class AdminController extends Controller
         logActivity('Menghapus mahasiswa: ' . $mahasiswa->nama_lengkap, 'Mahasiswa');
 
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil dihapus.');
-    }
-
-    // Dibawah ini untuk dosen Methods
-    public function daftarDosen()
-    {
-        $dosens = Dosen::all();
-        return view('admin.dosen.index', compact('dosens'));
     }
 
     public function detailDosen(Dosen $dosen)

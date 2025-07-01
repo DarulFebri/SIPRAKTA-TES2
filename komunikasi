@@ -1,0 +1,43 @@
+Internal Server Error
+
+Illuminate\Database\QueryException
+SQLSTATE[HY000]: General error: 1364 Field 'judul_pengajuan' doesn't have a default value (Connection: mysql, SQL: insert into `pengajuans` (`mahasiswa_id`, `jenis_pengajuan`, `status`, `updated_at`, `created_at`) values (3, pkl, draft, 2025-07-01 11:56:55, 2025-07-01 11:56:55))
+GET localhost:8000
+PHP 8.3.13 — Laravel 12.19.3
+
+Expand
+vendor frames
+19 vendor frames collapsed
+
+App\Http\Controllers\PengajuanController
+:409
+pklDetail
+5 vendor frames collapsed
+
+App\Http\Middleware\MahasiswaMiddleware
+:21
+handle
+45 vendor frames collapsed
+
+public/index.php
+:20
+require_once
+1 vendor frame collapsed
+app/Http/Controllers/PengajuanController.php :409
+    
+ 
+     public function pklDetail()
+    {
+        $mahasiswa = Auth::user()->mahasiswa;
+        $pengajuan = Pengajuan::firstOrCreate(
+            ['mahasiswa_id' => $mahasiswa->id, 'jenis_pengajuan' => 'pkl'],
+            ['status' => 'draft']
+        );
+        $dosen_pembimbings = Dosen::all(); // Ambil semua dosen
+ 
+        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'dosen_pembimbings'));
+    }
+ 
+    /**
+     * Mengunggah atau memperbarui dokumen persyaratan.
+     */

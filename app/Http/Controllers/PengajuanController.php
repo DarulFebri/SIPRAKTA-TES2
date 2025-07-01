@@ -416,7 +416,7 @@ class PengajuanController extends Controller
             ['mahasiswa_id' => $mahasiswa->id, 'jenis_pengajuan' => 'pkl'],
             ['status' => 'draft', 'judul_pengajuan' => null]
         );
-        $dosen_pembimbings = Dosen::all(); // Ambil semua dosen
+        $dosen_pembimbings = Dosen::all(); // Ambil semua dosens
 
         // PERBAIKAN UTAMA: Tambahkan 'mahasiswa' ke dalam compact()
         return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'dosen_pembimbings', 'mahasiswa'));

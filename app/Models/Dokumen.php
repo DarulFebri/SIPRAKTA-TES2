@@ -13,6 +13,7 @@ class Dokumen extends Model
         'pengajuan_id',
         'nama_file',
         'path_file',
+        'status', // Tambahkan baris ini
     ];
 
     public function pengajuan()

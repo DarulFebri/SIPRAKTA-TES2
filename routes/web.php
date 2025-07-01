@@ -55,6 +55,12 @@ Route::prefix('admin')->group(function () {
         Route::put('/mahasiswa/{mahasiswa}', [AdminController::class, 'updateMahasiswa'])->name('admin.mahasiswa.update');
         Route::delete('/mahasiswa/{mahasiswa}', [AdminController::class, 'destroyMahasiswa'])->name('admin.mahasiswa.destroy');
         
+
+        // Dosen Import/Export
+        Route::get('/dosen/import', [AdminController::class, 'importForm'])->name('admin.dosen.import.form');
+        Route::post('/dosen/import', [AdminController::class, 'import'])->name('admin.dosen.import');
+        Route::get('/dosen/export', [AdminController::class, 'exportDosen'])->name('admin.dosen.export');
+
         // Dosen Management
         Route::get('/dosen', [AdminController::class, 'daftarDosen'])->name('admin.dosen.index');
         Route::get('/dosen/create', [AdminController::class, 'createDosen'])->name('admin.dosen.create');
@@ -63,11 +69,6 @@ Route::prefix('admin')->group(function () {
         Route::get('/dosen/{dosen}/edit', [AdminController::class, 'editDosen'])->name('admin.dosen.edit');
         Route::put('/dosen/{dosen}', [AdminController::class, 'updateDosen'])->name('admin.dosen.update');
         Route::delete('/dosen/{dosen}', [AdminController::class, 'destroyDosen'])->name('admin.dosen.destroy');
-        
-        // Dosen Import/Export
-        Route::get('/dosen/import', [DosenController::class, 'importForm'])->name('admin.dosen.import.form');
-        Route::post('/dosen/import', [DosenController::class, 'import'])->name('admin.dosen.import');
-        Route::get('/dosen/export', [AdminController::class, 'exportDosen'])->name('admin.dosen.export');
         
         // Pengajuan Management
 

@@ -47,7 +47,7 @@
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-medium);
             width: 100%;
-            max-width: 800px;
+            max-width: 80%;
             border: 1px solid var(--border-color);
         }
 

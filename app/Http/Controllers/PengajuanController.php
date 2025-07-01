@@ -22,7 +22,7 @@ class PengajuanController extends Controller
     {
         $mahasiswa = Auth::user()->mahasiswa;
         $pengajuan = Pengajuan::firstOrCreate(
-            ['mahasiswa_id' => $mahasiswa->id, 'jenis_sidang' => 'pkl'],
+            ['mahasiswa_id' => $mahasiswa->id, 'jenis_pengajuan' => 'pkl'],
             ['status' => 'draft']
         );
         $dosen_pembimbings = Dosen::all(); // Ambil semua dosen

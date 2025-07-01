@@ -18,6 +18,79 @@ use Throwable; // Import Throwable untuk menangkap semua jenis error/exception
 class PengajuanController extends Controller
 {
 
+     public function pklDetail()
+    {
+        $mahasiswa = Auth::user()->mahasiswa;
+        $pengajuan = Pengajuan::firstOrCreate(
+            ['mahasiswa_id' => $mahasiswa->id, 'jenis_sidang' => 'pkl'],
+            ['status' => 'draft']
+        );
+        $dosen_pembimbings = Dosen::all(); // Ambil semua dosen
+
+        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'dosen_pembimbings'));
+    }
+
+    /**
+     * Mengunggah atau memperbarui dokumen persyaratan.
+     */
+    public function pklStore(Request $request, Pengajuan $pengajuan)
+    {
+        $request->validate([
+            // Tambahkan validasi file jika perlu, contoh:
+            // 'laporan_pkl_1' => 'mimes:pdf|max:2048',
+        ]);
+
+        foreach ($request->files as $key => $file) {
+            // Hapus file lama jika ada
+            if ($pengajuan->{$key}) {
+                Storage::disk('public')->delete($pengajuan->{$key});
+            }
+
+            // Simpan file baru
+            $path = $file->store('berkas_pkl', 'public');
+            $pengajuan->{$key} = $path;
+        }
+
+        $pengajuan->save();
+
+        return redirect()->back()->with('success', 'Dokumen berhasil diunggah/diperbarui.');
+    }
+
+
+    /**
+     * Memperbarui field secara spesifik (untuk auto-save).
+     */
+    public function pklUpdate(Request $request, Pengajuan $pengajuan)
+    {
+        $request->validate([
+            'field' => 'required|string|in:judul_laporan_pkl,dosen_pembimbing_id',
+            'value' => 'required',
+        ]);
+
+        $field = $request->input('field');
+        $value = $request->input('value');
+
+        $pengajuan->{$field} = $value;
+        $pengajuan->save();
+
+        return response()->json(['success' => true, 'message' => 'Data berhasil diperbarui.']);
+    }
+
+    /**
+     * Finalisasi pengajuan oleh mahasiswa.
+     */
+    public function pklFinalisasi(Pengajuan $pengajuan)
+    {
+        // Logika untuk memastikan semua sudah lengkap bisa ditambahkan di sini
+        // sebagai double-check sebelum mengubah status.
+
+        $pengajuan->status = 'pending'; // Status menjadi menunggu verifikasi
+        $pengajuan->catatan = null; // Hapus catatan penolakan sebelumnya
+        $pengajuan->save();
+
+        return redirect()->back()->with('success', 'Pengajuan berhasil difinalisasi dan dikirim untuk verifikasi.');
+    }
+
 
     public function jadwalSidangPkl()
     {

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('pengajuans', function (Blueprint $table) {
             //
-            $table->string('judul_pengajuan')->after('jenis_pengajuan'); // Tambahkan kolom ini
+            $table->string('judul_pengajuan')->after('jenis_pengajuan')->nullable(); // Tambahkan kolom ini
         });
     }
 

@@ -405,14 +405,21 @@ class PengajuanController extends Controller
 
      public function pklDetail()
     {
-        $mahasiswa = Auth::user()->mahasiswa;
+        // Pastikan pengguna adalah mahasiswa dan sudah login
+        if (!Auth::check() || Auth::user()->role !== 'mahasiswa') {
+            return redirect()->route('mahasiswa.login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+
+        $mahasiswa = Auth::user()->mahasiswa; // Variabel $mahasiswa diambil di sini
+        
         $pengajuan = Pengajuan::firstOrCreate(
             ['mahasiswa_id' => $mahasiswa->id, 'jenis_pengajuan' => 'pkl'],
-            ['status' => 'draft']
+            ['status' => 'draft', 'judul_pengajuan' => null]
         );
         $dosen_pembimbings = Dosen::all(); // Ambil semua dosen
 
-        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'dosen_pembimbings'));
+        // PERBAIKAN UTAMA: Tambahkan 'mahasiswa' ke dalam compact()
+        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'dosen_pembimbings', 'mahasiswa'));
     }
 
     /**

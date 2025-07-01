@@ -1,18 +1,17 @@
 Internal Server Error
 
-Illuminate\Database\QueryException
-SQLSTATE[23000]: Integrity constraint violation: 1048 Column 'judul_pengajuan' cannot be null (Connection: mysql, SQL: insert into `pengajuans` (`mahasiswa_id`, `jenis_pengajuan`, `status`, `judul_pengajuan`, `updated_at`, `created_at`) values (3, pkl, draft, ?, 2025-07-01 12:01:27, 2025-07-01 12:01:27))
+ErrorException
+Undefined variable $mahasiswa
 GET localhost:8000
 PHP 8.3.13 — Laravel 12.19.3
 
 Expand
 vendor frames
-19 vendor frames collapsed
 
-App\Http\Controllers\PengajuanController
-:409
-pklDetail
-5 vendor frames collapsed
+resources/views/mahasiswa/pengajuan/pkl.blade.php
+:98
+require
+13 vendor frames collapsed
 
 App\Http\Middleware\MahasiswaMiddleware
 :21
@@ -23,18 +22,20 @@ public/index.php
 :20
 require_once
 1 vendor frame collapsed
-app/Http/Controllers/PengajuanController.php :409
-    
- 
-     public function pklDetail()
-    {
-        $mahasiswa = Auth::user()->mahasiswa;
-        $pengajuan = Pengajuan::firstOrCreate(
-            ['mahasiswa_id' => $mahasiswa->id, 'jenis_pengajuan' => 'pkl'],
-            ['status' => 'draft','judul_pengajuan' => null]
-        );
-        $dosen_pembimbings = Dosen::all(); // Ambil semua dosen
- 
-        return view('mahasiswa.pengajuan.pkl', compact('pengajuan', 'dosen_pembimbings'));
-    }
- 
+resources/views/mahasiswa/pengajuan/pkl.blade.php :98
+        {{-- Mahasiswa Info (Read-only) --}}
+        <div class="student-info">
+            <div class="info-card">
+                <div class="info-group">
+                    <label><i class="fas fa-user"></i> Nama</label>
+                    <input type="text" value="{{ $mahasiswa->nama }}" disabled>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-group">
+                    <label><i class="fas fa-id-card"></i> NIM</label>
+                    <input type="text" value="{{ $mahasiswa->nim }}" disabled>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-group">

@@ -163,7 +163,16 @@ Route::prefix('mahasiswa')->group(function () {
         Route::prefix('pengajuan')->name('mahasiswa.pengajuan.')->group(function () {
 
 
-            
+            Route::get('detail/pkl', [PengajuanController::class, 'pklDetail'])->name('pkl.detail');
+
+            // Route untuk upload dokumen (bisa disatukan dengan form utama)
+            Route::post('store/pkl/{pengajuan}', [PengajuanController::class, 'pklStore'])->name('pkl.store');
+
+            // Route untuk auto-save (AJAX)
+            Route::patch('update/pkl/{pengajuan}', [PengajuanController::class, 'pklUpdate'])->name('pkl.update');
+
+            // Route untuk finalisasi
+            Route::post('finalisasi/pkl/{pengajuan}', [PengajuanController::class, 'pklFinalisasi'])->name('pkl.finalisasi');
 
 
 

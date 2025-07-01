@@ -1,202 +1,506 @@
-@extends('layouts.main')
+@extends('layouts.mahasiswa') {{-- Pastikan ini mengacu pada layout mahasiswa Anda --}}
+
+@section('title', 'Pengajuan Sidang PKL')
+@section('page_title', 'Pengajuan Sidang PKL')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="card-title">Pengajuan Sidang PKL</h4>
-                    <p class="card-subtitle">
-                        Halaman ini adalah pusat untuk pengajuan sidang PKL Anda. Silakan lengkapi semua persyaratan di bawah ini.
-                        Perubahan pada judul dan dosen pembimbing akan disimpan secara otomatis.
-                    </p>
+    {{-- Dynamic Status Alert --}}
+    @if ($pengajuan->status === 'diajukan_mahasiswa')
+        <div class="alert alert-info">
+            <i class="fas fa-hourglass-half"></i>
+            <strong>Menunggu Verifikasi Admin.</strong> Pengajuan Anda sedang dalam antrean untuk diverifikasi.
+        </div>
+    @elseif ($pengajuan->status === 'diverifikasi_admin')
+        <div class="alert alert-info">
+            <i class="fas fa-check-circle"></i>
+            <strong>Diverifikasi Admin.</strong> Pengajuan Anda telah diverifikasi oleh Admin dan diteruskan ke Kaprodi untuk penjadwalan.
+        </div>
+    @elseif ($pengajuan->status === 'dosen_ditunjuk')
+        <div class="alert alert-info">
+            <i class="fas fa-user-tie"></i>
+            <strong>Dosen Ditunjuk.</strong> Dosen untuk sidang Anda telah ditunjuk oleh Kaprodi. Menunggu persetujuan dosen terkait.
+        </div>
+    @elseif ($pengajuan->status === 'menunggu_persetujuan_dosen')
+        <div class="alert alert-info">
+            <i class="fas fa-clipboard-check"></i>
+            <strong>Menunggu Persetujuan Dosen.</strong> Jadwal sidang Anda telah dibuat, menunggu persetujuan dari dosen-dosen yang ditunjuk.
+        </div>
+    @elseif ($pengajuan->status === 'sidang_dijadwalkan_final')
+        <div class="alert alert-success">
+            <i class="fas fa-calendar-check"></i>
+            <strong>Jadwal Sidang Final.</strong> Jadwal sidang Anda telah difinalisasi oleh Kaprodi.
+            Silakan periksa detail di bawah dan bersiap untuk sidang!
+        </div>
+    @elseif ($pengajuan->status === 'diverifikasi_kajur')
+        <div class="alert alert-success">
+            <i class="fas fa-graduation-cap"></i>
+            <strong>Pengajuan Disetujui Kajur.</strong> Pengajuan sidang Anda telah disetujui oleh Ketua Jurusan. Sidang akan segera dilaksanakan.
+        </div>
+    @elseif ($pengajuan->status === 'selesai')
+        <div class="alert alert-success">
+            <i class="fas fa-clipboard-list"></i>
+            <strong>Sidang Selesai.</strong> Pengajuan sidang Anda telah selesai.
+        </div>
+    @elseif (str_contains($pengajuan->status, 'ditolak')) {{-- Tangkap semua status ditolak --}}
+        <div class="alert alert-danger">
+            <i class="fas fa-times-circle"></i>
+            <strong>Ditolak.</strong> Pengajuan Anda ditolak.
+            @if ($pengajuan->catatan_admin)
+                <p class="mt-2"><strong>Catatan dari Admin:</strong> {{ $pengajuan->catatan_admin }}</p>
+            @endif
+            @if ($pengajuan->catatan_kaprodi)
+                <p class="mt-2"><strong>Catatan dari Kaprodi:</strong> {{ $pengajuan->catatan_kaprodi }}</p>
+            @endif
+            <p>Silakan perbaiki persyaratan yang salah dan ajukan ulang.</p>
+        </div>
+    @else {{-- Default: draft or initial view --}}
+        <div class="alert alert-info">
+            <i class="fas fa-pencil-alt"></i>
+            <strong>Draft.</strong> Silakan lengkapi semua persyaratan dan lakukan finalisasi pengajuan.
+            Perubahan pada judul dan dosen pembimbing akan disimpan otomatis.
+        </div>
+    @endif
 
-                    {{-- Bagian Status Pengajuan dan Catatan --}}
-                    <div class="mt-4 mb-4">
-                        <h5>Status Pengajuan Anda</h5>
-                        @if($pengajuan->status == 'disetujui')
-                            <div class="alert alert-success">
-                                <strong>Disetujui.</strong> Jadwal sidang Anda telah ditetapkan. Silakan cek di halaman jadwal.
-                            </div>
-                        @elseif($pengajuan->status == 'ditolak')
-                            <div class="alert alert-danger">
-                                <strong>Ditolak.</strong> Pengajuan Anda ditolak.
-                                <p class="font-weight-bold mt-2">Catatan dari Admin/Kaprodi:</p>
-                                <p>{{ $pengajuan->catatan ?? 'Tidak ada catatan.' }}</p>
-                                <p>Silakan perbaiki persyaratan yang ditolak dan lakukan finalisasi ulang.</p>
-                            </div>
-                        @elseif($pengajuan->status == 'pending')
-                             <div class="alert alert-warning">
-                                <strong>Menunggu Verifikasi.</strong> Pengajuan Anda sedang diverifikasi oleh admin.
-                            </div>
-                        @else
-                            <div class="alert alert-info">
-                                <strong>Draft.</strong> Silakan lengkapi semua persyaratan dan lakukan finalisasi.
-                            </div>
-                        @endif
-                    </div>
+    {{-- General success/error messages from controller actions --}}
+    @if (session('success'))
+        <div class="alert alert-success mt-4">
+            <i class="fas fa-check-circle"></i> {{ session('success') }}
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger mt-4">
+            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+        </div>
+    @endif
+    @if ($errors->any())
+        <div class="alert alert-danger mt-4">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Terjadi Kesalahan Validasi:</strong>
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
+    <div class="form-container">
+        <h2 class="form-title">
+            <i class="fas fa-file-alt"></i>
+            Detail Pengajuan Sidang PKL
+        </h2>
 
-                    <form id="pengajuanForm" action="{{ route('mahasiswa.pengajuan.pkl.finalisasi', $pengajuan->id) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <div class="form-body">
-                            {{-- Judul dan Dosen Pembimbing --}}
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="judul_laporan_pkl">Judul Laporan PKL</label>
-                                        <input type="text" id="judul_laporan_pkl" name="judul_laporan_pkl" class="form-control"
-                                               placeholder="Masukkan Judul Laporan PKL"
-                                               value="{{ $pengajuan->judul_laporan_pkl }}"
-                                               data-url="{{ route('mahasiswa.pengajuan.pkl.update', $pengajuan->id) }}">
-                                        <small id="judul-save-status" class="form-text text-muted" style="display: none;"></small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="dosen_pembimbing_id">Dosen Pembimbing</label>
-                                        <select id="dosen_pembimbing_id" name="dosen_pembimbing_id" class="form-control"
-                                                data-url="{{ route('mahasiswa.pengajuan.pkl.update', $pengajuan->id) }}">
-                                            <option value="">Pilih Dosen Pembimbing</option>
-                                            @foreach($dosen_pembimbings as $dosen)
-                                                <option value="{{ $dosen->id }}" {{ $pengajuan->dosen_pembimbing_id == $dosen->id ? 'selected' : '' }}>
-                                                    {{ $dosen->nama }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <small id="dosen-save-status" class="form-text text-muted" style="display: none;"></small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Berkas Persyaratan --}}
-                            <h5 class="mt-4">Berkas Persyaratan Pengajuan PKL</h5>
-                            <div class="table-responsive mt-3">
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Nama Dokumen</th>
-                                            <th>Status</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @php
-                                            $berkas_list = [
-                                                'laporan_pkl_1' => 'Laporan PKL (Rangkap 1)',
-                                                'laporan_pkl_2' => 'Laporan PKL (Rangkap 2)',
-                                                'buku_pkl' => 'Buku PKL',
-                                                'kuisioner_survey' => 'Kuisioner Survey PKL (diisi, ttd, stempel)',
-                                                'kuisioner_kelulusan' => 'Kuisioner Kelulusan (jika ada)',
-                                                'kuisioner_balikan' => 'Kuisioner Balikan PKL',
-                                                'rekomendasi_penguji' => 'Lembaran Rekomendasi Penguji',
-                                                'surat_permohonan_sidang' => 'Surat Permohonan Sidang PKL',
-                                                'lembar_penilaian_sidang' => 'Lembar Penilaian Sidang PKL (Penguji)',
-                                                'surat_keterangan_pelaksanaan' => 'Surat Keterangan Pelaksanaan PKL (Asli)',
-                                                'cover_laporan_pkl' => 'Fotocopy Cover Laporan (ttd dospem)',
-                                                'lembar_penilaian_industri' => 'Fotocopy Lembar Penilaian Industri (ttd pembimbing industri)',
-                                                'lembar_penilaian_dospem' => 'Fotocopy Lembar Penilaian Dospem (ttd dospem)',
-                                                'lembar_konsultasi' => 'Fotocopy Lembar Konsultasi Bimbingan (diisi dan ttd dospem)',
-                                            ];
-                                            $all_uploaded = $pengajuan->judul_laporan_pkl && $pengajuan->dosen_pembimbing_id;
-                                        @endphp
-
-                                        @foreach($berkas_list as $key => $value)
-                                        <tr>
-                                            <td>{{ $loop->iteration }}</td>
-                                            <td>{{ $value }}</td>
-                                            <td>
-                                                @if($pengajuan->{$key})
-                                                    <span class="badge badge-success">Sudah Diunggah</span>
-                                                @else
-                                                    <span class="badge badge-danger">Belum Diunggah</span>
-                                                    @php $all_uploaded = false; @endphp
-                                                @endif
-                                            </td>
-                                            <td>
-                                                <div class="btn-group">
-                                                     <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('{{ $key }}').click();">
-                                                        {{ $pengajuan->{$key} ? 'Edit' : 'Unggah' }}
-                                                    </button>
-                                                    <input type="file" name="{{ $key }}" id="{{ $key }}" class="d-none" onchange="this.form.submit()">
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="form-actions mt-4">
-                            <div class="text-right">
-                                <button type="submit" id="finalisasiBtn" class="btn btn-info" {{ !$all_uploaded ? 'disabled' : '' }}>
-                                    Finalisasi Pengajuan
-                                </button>
-                                <a href="{{ route('mahasiswa.dashboard') }}" class="btn btn-dark">Kembali</a>
-                            </div>
-                        </div>
-                    </form>
+        {{-- Mahasiswa Info (Read-only) --}}
+        <div class="student-info">
+            <div class="info-card">
+                <div class="info-group">
+                    <label><i class="fas fa-user"></i> Nama</label>
+                    <input type="text" value="{{ $mahasiswa->nama_lengkap }}" disabled>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-group">
+                    <label><i class="fas fa-id-card"></i> NIM</label>
+                    <input type="text" value="{{ $mahasiswa->nim }}" disabled>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-group">
+                    <label><i class="fas fa-graduation-cap"></i> Program Studi</label>
+                    <input type="text" value="{{ $mahasiswa->prodi }}" disabled>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-group">
+                    <label><i class="fas fa-file-alt"></i> Judul Laporan PKL</label>
+                    <textarea id="judul_pengajuan" name="judul_pengajuan" class="form-control"
+                              placeholder="Masukkan Judul Laporan PKL"
+                              {{ $pengajuan->isSubmitted() ? 'readonly' : '' }}
+                              data-url="{{ route('mahasiswa.pengajuan.update', $pengajuan->id) }}"
+                              data-field="judul_pengajuan">{{ old('judul_pengajuan', $pengajuan->judul_pengajuan) }}</textarea>
+                    <small id="judul-save-status" class="form-text text-muted" style="display: none;">Menyimpan...</small>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-group">
+                    <label><i class="fas fa-user-tie"></i> Dosen Pembimbing</label>
+                    <select id="dosen_pembimbing_id" name="dosen_pembimbing_id" class="form-control"
+                            {{ $pengajuan->isSubmitted() ? 'disabled' : '' }}
+                            data-url="{{ route('mahasiswa.pengajuan.update', $pengajuan->id) }}"
+                            data-field="dosen_pembimbing_id">
+                        <option value="">Pilih Dosen Pembimbing</option>
+                        @foreach($dosens as $dosen)
+                            <option value="{{ $dosen->id }}" {{ old('dosen_pembimbing_id', optional($pengajuan->sidang)->dosen_pembimbing_id) == $dosen->id ? 'selected' : '' }}>
+                                {{ $dosen->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small id="dosen-save-status" class="form-text text-muted" style="display: none;">Menyimpan...</small>
                 </div>
             </div>
         </div>
+
+        {{-- Berkas Persyaratan Section --}}
+        <h2 class="form-title mt-4">
+            <i class="fas fa-upload"></i>
+            Berkas Persyaratan Pengajuan PKL
+        </h2>
+        
+        <div class="table-responsive mt-3">
+            <table class="document-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nama Dokumen</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php
+                        $allDocumentsUploaded = true;
+                    @endphp
+                    @foreach($dokumenSyarat as $key => $namaDokumen)
+                        @php
+                            $uploadedDoc = $dokumenTerupload->get($namaDokumen);
+                            $isUploaded = !empty($uploadedDoc) && !empty($uploadedDoc->path_file);
+                            // Cek dokumen opsional
+                            $isOptional = ($namaDokumen === 'Kuisioner Kelulusan (jika ada)');
+
+                            if (!$isUploaded && !$isOptional) {
+                                $allDocumentsUploaded = false;
+                            }
+                        @endphp
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $namaDokumen }}</td>
+                            <td>
+                                @if($isUploaded)
+                                    <span class="status-badge status-uploaded">Sudah Diunggah</span>
+                                @else
+                                    <span class="status-badge status-pending">Belum Diunggah</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if (!$pengajuan->isSubmitted() || str_contains($pengajuan->status, 'ditolak')) {{-- Izinkan upload/edit jika belum diserahkan atau ditolak --}}
+                                    <div class="action-buttons">
+                                        {{-- Hidden input for file upload. Perhatikan event listener di JavaScript. --}}
+                                        <input type="file" id="dokumen_{{ $key }}" name="dokumen_{{ $key }}" class="d-none document-file-input" 
+                                               accept=".pdf, .jpg, .jpeg, .png" 
+                                               data-document-key="dokumen_{{ $key }}"
+                                               data-pengajuan-id="{{ $pengajuan->id }}">
+                                        
+                                        @if($isUploaded)
+                                            <a href="{{ asset('storage/' . $uploadedDoc->path_file) }}" target="_blank" class="action-btn btn-view">
+                                                <i class="fas fa-eye"></i> Lihat
+                                            </a>
+                                            <button type="button" class="action-btn btn-edit" onclick="document.getElementById('dokumen_{{ $key }}').click();">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        @else
+                                            <button type="button" class="action-btn btn-submit" onclick="document.getElementById('dokumen_{{ $key }}').click();">
+                                                <i class="fas fa-upload"></i> Unggah
+                                            </button>
+                                        @endif
+                                    </div>
+                                @else {{-- Jika sudah diserahkan (dan tidak ditolak), hanya izinkan melihat --}}
+                                    @if($isUploaded)
+                                        <a href="{{ asset('storage/' . $uploadedDoc->path_file) }}" target="_blank" class="action-btn btn-view">
+                                            <i class="fas fa-eye"></i> Lihat
+                                        </a>
+                                    @else
+                                        -
+                                    @endif
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Sidang Information (if scheduled) --}}
+        @if($pengajuan->sidang && $pengajuan->sidang->tanggal_waktu_sidang)
+            <h2 class="form-title mt-4">
+                <i class="fas fa-calendar-check"></i>
+                Jadwal Sidang & Tim Penguji
+            </h2>
+            <div class="student-info"> {{-- Gunakan kembali student-info untuk konsistensi styling card --}}
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-calendar-alt"></i> Tanggal Sidang</label>
+                        <input type="text" value="{{ \Carbon\Carbon::parse($pengajuan->sidang->tanggal_waktu_sidang)->translatedFormat('l, d F Y') }}" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-clock"></i> Waktu Sidang</label>
+                        <input type="text" value="{{ \Carbon\Carbon::parse($pengajuan->sidang->tanggal_waktu_sidang)->format('H:i') }} WIB" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Ruangan</label>
+                        <input type="text" value="{{ $pengajuan->sidang->ruangan_sidang }}" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-user-tie"></i> Ketua Sidang</label>
+                        <input type="text" value="{{ $pengajuan->sidang->ketuaSidang->nama ?? 'Belum Ditunjuk' }}" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-user-tag"></i> Sekretaris Sidang</label>
+                        <input type="text" value="{{ $pengajuan->sidang->sekretarisSidang->nama ?? 'Belum Ditunjuk' }}" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-users"></i> Anggota Sidang 1</label>
+                        <input type="text" value="{{ $pengajuan->sidang->anggota1Sidang->nama ?? 'Belum Ditunjuk' }}" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-users-cog"></i> Anggota Sidang 2</label>
+                        <input type="text" value="{{ $pengajuan->sidang->anggota2Sidang->nama ?? 'Tidak Ada' }}" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-user-graduate"></i> Dosen Pembimbing 1</label>
+                        <input type="text" value="{{ $pengajuan->sidang->dosenPembimbing->nama ?? 'Belum Ditunjuk' }}" disabled>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-group">
+                        <label><i class="fas fa-user-graduate"></i> Dosen Pembimbing 2</label>
+                        <input type="text" value="{{ $pengajuan->sidang->dosenPenguji1->nama ?? 'Belum Ditunjuk' }}" disabled>
+                    </div>
+                </div>
+            </div>
+        @elseif(!$pengajuan->isSubmitted() || str_contains($pengajuan->status, 'ditolak'))
+            {{-- Pesan ini hanya muncul jika belum diserahkan atau ditolak --}}
+            <div class="alert alert-info mt-4">
+                <i class="fas fa-info-circle"></i>
+                Jadwal sidang akan ditampilkan di sini setelah pengajuan Anda diverifikasi dan dijadwalkan oleh Kaprodi.
+            </div>
+        @endif
+
+        {{-- Form untuk finalisasi --}}
+        {{-- Tombol "Finalisasi Pengajuan" hanya akan muncul jika pengajuan belum diserahkan atau ditolak --}}
+        @if (!$pengajuan->isSubmitted() || str_contains($pengajuan->status, 'ditolak'))
+            <form id="finalizationForm" action="{{ route('mahasiswa.pengajuan.update', $pengajuan->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="action" value="submit"> {{-- Menandakan pengiriman final --}}
+                <input type="hidden" name="judul_pengajuan" id="hidden_judul_pengajuan">
+                <input type="hidden" name="dosen_pembimbing_id" id="hidden_dosen_pembimbing_id">
+
+                <div class="footer-buttons mt-4">
+                    <button type="submit" id="finalisasiBtn" class="action-btn btn-submit" 
+                            disabled {{-- Default disabled, akan diaktifkan oleh JS --}}
+                            title="Lengkapi semua dokumen, judul, dan dosen pembimbing untuk memfinalisasi"
+                            onclick="return confirm('Apakah Anda yakin ingin memfinalisasi pengajuan ini? Setelah difinalisasi, Anda tidak dapat mengubahnya lagi kecuali ditolak oleh admin.');">
+                        <i class="fas fa-paper-plane"></i> Finalisasi Pengajuan
+                    </button>
+                    <a href="{{ route('mahasiswa.pengajuan.index') }}" class="action-btn btn-view">
+                        <i class="fas fa-list-alt"></i> Daftar Pengajuan Saya
+                    </a>
+                    <a href="{{ route('mahasiswa.dashboard') }}" class="action-btn btn-view">
+                        <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+                    </a>
+                </div>
+            </form>
+        @else {{-- Jika sudah diserahkan dan tidak ditolak, tampilkan tombol navigasi saja --}}
+            <div class="footer-buttons mt-4" style="justify-content: flex-end;">
+                <a href="{{ route('mahasiswa.pengajuan.index') }}" class="action-btn btn-view">
+                    <i class="fas fa-list-alt"></i> Daftar Pengajuan Saya
+                </a>
+                <a href="{{ route('mahasiswa.dashboard') }}" class="action-btn btn-view">
+                    <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+                </a>
+            </div>
+        @endif
     </div>
-</div>
+@endsection
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> {{-- Pastikan jQuery sudah dimuat --}}
 <script>
-$(document).ready(function() {
-    const judulInput = $('#judul_laporan_pkl');
-    const dosenSelect = $('#dosen_pembimbing_id');
-    let timer;
+    $(document).ready(function() {
+        const pengajuanStatus = "{{ $pengajuan->status }}";
+        const isCurrentlySubmitted = isPengajuanSubmitted(pengajuanStatus); // Gunakan helper dari model
 
-    function showSaveStatus(element, message, isSuccess) {
-        const statusElement = element.next('small');
-        statusElement.text(message).css('color', isSuccess ? 'green' : 'red').fadeIn();
-        setTimeout(() => statusElement.fadeOut(), 3000);
-    }
+        // Disable/enable judul dan dosen_pembimbing jika sudah diserahkan
+        if (isCurrentlySubmitted) {
+            $('#judul_pengajuan').prop('readonly', true);
+            $('#dosen_pembimbing_id').prop('disabled', true);
+        } else {
+            $('#judul_pengajuan').prop('readonly', false);
+            $('#dosen_pembimbing_id').prop('disabled', false);
+        }
 
-    function autoSave(element, fieldName, value) {
-        const url = element.data('url');
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            element.next('small').text('Menyimpan...').css('color', 'orange').fadeIn();
+        // Auto-save logic for judul and dosen_pembimbing
+        const judulInput = $('#judul_pengajuan');
+        const dosenSelect = $('#dosen_pembimbing_id');
+        let autoSaveTimer;
+
+        function showSaveStatus(element, message, isSuccess) {
+            const statusElement = element.next('small');
+            statusElement.text(message).css('color', isSuccess ? 'green' : 'red').fadeIn();
+            setTimeout(() => statusElement.fadeOut(), 3000);
+        }
+
+        function triggerAutoSave(element, fieldName, value) {
+            if (isCurrentlySubmitted) return; // Jangan auto-save jika sudah diserahkan
+
+            const url = element.data('url');
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                element.next('small').text('Menyimpan...').css('color', 'orange').fadeIn();
+                $.ajax({
+                    url: url,
+                    type: 'POST', 
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        _method: 'PUT', // Menggunakan PUT untuk hit route update
+                        action: 'auto_save_field', // Aksi khusus untuk auto-save
+                        field: fieldName,
+                        value: value
+                    },
+                    success: function(response) {
+                        showSaveStatus(element, response.message, response.success);
+                        // Perbarui status tombol finalisasi setelah auto-save berhasil
+                        checkAndSetFinalizationButtonStatus();
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Gagal menyimpan perubahan.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = 'Gagal: ' + xhr.responseJSON.message;
+                        }
+                        showSaveStatus(element, errorMessage, false);
+                    }
+                });
+            }, 1000); // Delay 1 detik sebelum menyimpan
+        }
+
+        judulInput.on('keyup', function() {
+            triggerAutoSave($(this), 'judul_pengajuan', $(this).val());
+        });
+
+        dosenSelect.on('change', function() {
+            triggerAutoSave($(this), 'dosen_pembimbing_id', $(this).val());
+        });
+
+        // Document upload via AJAX
+        $('.document-file-input').on('change', function() {
+            if (isCurrentlySubmitted) return; // Jangan izinkan upload jika sudah diserahkan
+
+            const fileInput = $(this);
+            const documentKey = fileInput.data('document-key');
+            const pengajuanId = fileInput.data('pengajuan-id');
+            const file = fileInput[0].files[0];
+
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('_method', 'PUT'); // Menggunakan PUT untuk update
+            formData.append('action', 'upload_single_document');
+            formData.append('document_name_key', documentKey);
+            formData.append('document_file', file);
+
+            // Tampilkan indikator loading
+            const row = fileInput.closest('tr');
+            const statusCell = row.find('td:nth-child(3)');
+            const actionCell = row.find('td:nth-child(4)');
+
+            statusCell.html('<span class="status-badge status-pending"><i class="fas fa-spinner fa-spin"></i> Mengunggah...</span>');
+            actionCell.find('button, a').prop('disabled', true).addClass('disabled-btn'); // Nonaktifkan tombol selama upload
+
             $.ajax({
-                url: url,
-                type: 'POST',
-                data: {
-                    _token: '{{ csrf_token() }}',
-                    _method: 'PATCH', // Menggunakan PATCH untuk update
-                    field: fieldName,
-                    value: value
-                },
+                url: "{{ route('mahasiswa.pengajuan.update', $pengajuan->id) }}",
+                type: 'POST', // Dikirim sebagai POST, tetapi Laravel akan menginterpretasikan sebagai PUT
+                data: formData,
+                processData: false,
+                contentType: false,
                 success: function(response) {
-                    showSaveStatus(element, 'Perubahan berhasil disimpan!', true);
+                    if (response.success) {
+                        statusCell.html('<span class="status-badge status-uploaded">Sudah Diunggah</span>');
+                        // Perbarui tombol aksi dengan link lihat dan tombol edit
+                        actionCell.html(`
+                            <a href="${response.file_url}" target="_blank" class="action-btn btn-view">
+                                <i class="fas fa-eye"></i> Lihat
+                            </a>
+                            <button type="button" class="action-btn btn-edit" onclick="document.getElementById('${documentKey}').click();">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        `);
+                        // Perbarui status tombol finalisasi
+                        checkAndSetFinalizationButtonStatus();
+                    } else {
+                        statusCell.html('<span class="status-badge status-pending">Gagal Unggah</span>');
+                        alert(response.message);
+                    }
+                    actionCell.find('button, a').prop('disabled', false).removeClass('disabled-btn'); // Aktifkan kembali tombol
                 },
-                error: function() {
-                    showSaveStatus(element, 'Gagal menyimpan perubahan.', false);
+                error: function(xhr) {
+                    statusCell.html('<span class="status-badge status-pending">Gagal Unggah</span>');
+                    actionCell.find('button, a').prop('disabled', false).removeClass('disabled-btn'); // Aktifkan kembali tombol
+                    let errorMessage = 'Terjadi kesalahan saat mengunggah.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    alert('Error: ' + errorMessage);
                 }
             });
-        }, 1000); // Delay 1 detik sebelum menyimpan
-    }
+        });
 
-    judulInput.on('keyup', function() {
-        autoSave($(this), 'judul_laporan_pkl', $(this).val());
+        // Fungsi untuk memperbarui status tombol finalisasi
+        function checkAndSetFinalizationButtonStatus() {
+            const finalisasiBtn = $('#finalisasiBtn');
+            const judulFilled = judulInput.val().trim() !== '';
+            const dosenSelected = dosenSelect.val() !== '';
+            
+            let allRequiredDocumentsUploaded = true;
+            $('.document-table tbody tr').each(function() {
+                const statusBadge = $(this).find('.status-badge');
+                const documentName = $(this).find('td:nth-child(2)').text().trim();
+                const isOptional = (documentName === 'Kuisioner Kelulusan (jika ada)');
+
+                if (!isOptional && statusBadge.text().trim() === 'Belum Diunggah') {
+                    allRequiredDocumentsUploaded = false;
+                    return false; // Break loop
+                }
+            });
+
+            const canFinalize = judulFilled && dosenSelected && allRequiredDocumentsUploaded;
+
+            if (canFinalize) {
+                finalisasiBtn.prop('disabled', false).attr('title', 'Finalisasi pengajuan Anda');
+            } else {
+                finalisasiBtn.prop('disabled', true).attr('title', 'Lengkapi semua dokumen, judul, dan dosen pembimbing untuk memfinalisasi');
+            }
+        }
+
+        // Update hidden fields in finalization form
+        $('#finalizationForm').on('submit', function() {
+            $('#hidden_judul_pengajuan').val(judulInput.val());
+            $('#hidden_dosen_pembimbing_id').val(dosenSelect.val());
+        });
+
+        // Panggil saat halaman dimuat untuk set status awal tombol
+        checkAndSetFinalizationButtonStatus();
+
+        // Optional: Style for disabled buttons
+        $(document).on('mouseover', '.disabled-btn', function() {
+            $(this).css('cursor', 'not-allowed');
+        }).on('mouseout', '.disabled-btn', function() {
+            $(this).css('cursor', 'default');
+        });
     });
-
-    dosenSelect.on('change', function() {
-        autoSave($(this), 'dosen_pembimbing_id', $(this).val());
-    });
-
-    // Cek kondisi tombol finalisasi saat halaman dimuat
-    const allUploaded = {{ $all_uploaded ? 'true' : 'false' }};
-    if (allUploaded) {
-        $('#finalisasiBtn').prop('disabled', false).attr('title', 'Anda dapat memfinalisasi pengajuan');
-    } else {
-        $('#finalisasiBtn').prop('disabled', true).attr('title', 'Harap lengkapi semua judul, dosen, dan dokumen terlebih dahulu');
-    }
-});
 </script>
 @endpush
-@endsection
